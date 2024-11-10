@@ -1,6 +1,7 @@
 #include<string>
 #include<unordered_map>
 #include <ctime>
+#include<sstream>
 #include<pthread.h>
 using namespace std;
 
@@ -23,6 +24,21 @@ struct FileMetaData{
 
     FileMetaData(string filename) {
         this->filename = filename;
+    }
+
+    string toString() {
+        stringstream oss;
+        oss << filename << " " << path << " " << isModified 
+            << " " << hasWriteLock << " " << owner 
+            << " " << lastModified << " " << currentReaders;
+        return oss.str();
+    }
+
+    void fromString(string str) {
+        stringstream iss(str);
+        iss  >> filename >> path >> isModified 
+                >> hasWriteLock >> owner >> lastModified 
+                >> currentReaders;
     }
 
 };

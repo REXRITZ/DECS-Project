@@ -120,8 +120,8 @@ public:
                     const char* resp = addFile(command[1], clientid);
                     write(connFd, resp, strlen(resp));
                 } else if(command[0] == "listall") {
-                    const char* resp = listall();
-                    write(connFd, resp, strlen(resp));
+                    string resp = listall();
+                    write(connFd, resp.c_str(), resp.length());
                 } else if(command[0] == "quit") {
                     printUsers();
                     quit(connFd, clientid);
@@ -178,13 +178,13 @@ public:
         return "OK";
     }
 
-    const char* listall() {
+    string listall() {
         unordered_map<string, FileMetaData>:: iterator it;
         string resp = "";
         for (it = filesMap.begin(); it != filesMap.end(); ++it) {
             resp += "filename: " + it->first + ", current readers: " + to_string(it->second.currentReaders) + "\n";
         }
-        return resp.c_str();
+        return resp;
     }
 
     void printUsers() {

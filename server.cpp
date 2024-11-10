@@ -167,7 +167,8 @@ public:
         write(connFd, "OK", 2);
         FileMetaData fileMetaData = filesMap[filename];
         int fd = open(fileMetaData.path.c_str(), O_RDONLY);
-        write(connFd, &fileMetaData, sizeof(FileMetaData));
+        string serializedData = fileMetaData.toString();
+        write(connFd, serializedData.c_str(), serializedData.length());
         char buff[BUF_SIZE] = {0};
         
         while(1) {

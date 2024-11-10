@@ -35,7 +35,7 @@ public:
             ss  >> metadata.filename >> metadata.path >> metadata.isModified 
                 >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
                 >> metadata.currentReaders;
-            filesMap[metadata.owner] = metadata;
+            filesMap[metadata.filename] = metadata;
         }
         return 0;
     }
@@ -87,7 +87,7 @@ public:
             if(connFd < 0) {
                 perror("accept connection error\n");
                 return;
-            }   
+            }
             int port = ntohs(clientAddr.sin_port);
             string clientid = inet_ntoa(clientAddr.sin_addr);
             clientid += ":" + to_string(port);
@@ -98,6 +98,7 @@ public:
                 read(connFd, buff, sizeof(buff));
                 if(strlen(buff) == 0)
                     continue;
+                cout<<"Buff: "<<buff<<endl;
                 vector<string>command;
                 char* token = strtok(buff, " ");
                 while(token) {
@@ -116,6 +117,8 @@ public:
 
                     const char* resp = addFile(command[1], clientid);
                     write(connFd, resp, strlen(resp));
+                } else {
+                    cout << "Enter a valid command!" << endl;
                 }
             }
             
@@ -154,11 +157,14 @@ public:
         fileMetaData.lastModified = time(nullptr); // unix epoch timestamp
         fileMetaData.owner = clientMap[clientid].username;
         // write to persist file meta data info
+        ofstream file1(fileMetaData.path);
+        file1.close();
         ofstream file;
-        file.open(fileMetaData.path, ios_base::app);
-        file << fileMetaData.filename << fileMetaData.path << fileMetaData.isModified 
-                << fileMetaData.hasWriteLock << fileMetaData.owner << fileMetaData.lastModified 
-                << fileMetaData.currentReaders;
+        file.open(FILES_METADATA_PATH, ios_base::app);
+        file << fileMetaData.filename << " " << fileMetaData.path << " " << fileMetaData.isModified 
+                << " " << fileMetaData.hasWriteLock << " " << fileMetaData.owner << " " << fileMetaData.lastModified 
+                << " " << fileMetaData.currentReaders << endl;
+        file.close();
         filesMap[filename] = fileMetaData;
         return "OK";
     }

@@ -53,7 +53,7 @@ public:
             ss  >> metadata.filename >> metadata.path >> metadata.isModified 
                 >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
                 >> metadata.currentReaders;
-            filesMap[metadata.owner] = metadata;
+            filesMap[metadata.filename] = metadata;
         }
         return 0;
     }

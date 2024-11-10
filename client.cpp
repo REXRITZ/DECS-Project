@@ -72,7 +72,7 @@ public:
         }
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = htons(port);
-
+        cout<<ip;
         if(inet_pton(AF_INET, ip, &serverAddr.sin_addr) <= 0) {
             cout<<"Invalid address/ Address not supported"<<endl;
             return -1;
@@ -97,7 +97,7 @@ public:
     void login() {
         //check from server side whether user is registered or not
         User tempuser;
-        cout<<"----Register----"<<endl;
+        cout<<"----Login----"<<endl;
         cout<<"Enter username: ";
         cin>>tempuser.username;
         cout<<"Enter password: ";

@@ -103,10 +103,13 @@ public:
             string ip = inet_ntoa(clientAddr.sin_addr);
             // User user;
             // recv(connFd, &user, sizeof(User), 0);
-            char buff[BUF_SIZE] = {0};
+            
             while(1) {
                 // read input commands here
-                recv(connFd, buff, sizeof(buff), 0);
+                char buff[BUF_SIZE] = {0};
+                read(connFd, buff, sizeof(buff));
+                if(strlen(buff) == 0)
+                    continue;
                 vector<string>command;
                 char* token = strtok(buff, " ");
                 while(token) {
@@ -116,7 +119,7 @@ public:
                 if(command[0] == "login") {
                     User user(command[1], command[2]);
                     const char* resp = authenticateUser(user);
-                    send(connFd, resp, strlen(resp),0);
+                    write(connFd, resp, strlen(resp));
                 }
             }
             
@@ -125,7 +128,8 @@ public:
 
     const char* authenticateUser(User user) {
         if(users.find(user.username) == users.end()) {
-            ofstream file(USER_DATA_PATH);
+            ofstream file;
+            file.open(USER_DATA_PATH, ios_base::app);
             file << user.username << " " << user.password << " " << endl;
             users[user.username] = user;
         }

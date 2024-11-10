@@ -1,2 +1,6 @@
 files/
 .vscode/
+client
+server
+usermetadata.txt
+multi_threaded_server.c

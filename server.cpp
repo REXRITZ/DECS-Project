@@ -19,12 +19,6 @@ class Server {
 public:
 
     int loadFileMetaData() {
-        
-        // int fd = open(FILES_METADATA_PATH, O_RDONLY);
-        // if(fd < 0) {
-        //     perror("failed to open fd\n");
-        //     return -1;
-        // }
 
         ifstream file(FILES_METADATA_PATH);
         if(!file.is_open()) {
@@ -36,17 +30,9 @@ public:
         while(getline(file, line)) {
             stringstream ss(line);
             string perm;
-            ss  >> metadata.filename >> perm >> metadata.path >> metadata.isModified 
+            ss  >> metadata.filename >> metadata.path >> metadata.isModified 
                 >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
                 >> metadata.currentReaders;
-            if(perm == "WRITE")
-                metadata.perms = WRITE;
-            else if(perm == "READ")
-                metadata.perms = READ;
-            else {
-                cout<<"Invalid permission value"<<endl;
-                return -1;
-            }
             filesMap[metadata.owner] = metadata;
         }
         return 0;
@@ -174,11 +160,11 @@ int main(int argc, char** argv) {
     if (server->loadUserMetaData() < 0) {
         cout << "ERROR: server->loadUserMetaData()" << endl;
     }
-    server->printUsers();
+    // server->printUsers();
     
-    // if (server->loadFileMetaData() < 0) {
-    //     cout << "ERROR: server->loadFileMetaData()" << endl;
-    // }
+    if (server->loadFileMetaData() < 0) {
+        cout << "ERROR: server->loadFileMetaData()" << endl;
+    }
     server->startServer(port, serverAddr);
     server->startListening();
 }

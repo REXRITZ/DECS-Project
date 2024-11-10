@@ -4,16 +4,10 @@
 #include<pthread.h>
 using namespace std;
 
-enum Permission {
-    READ,
-    WRITE,
-    BOTH
-};
 
 typedef struct {
     // int id;
     string filename; // filename can also be id??
-    Permission perms;
     string path;
     bool isModified;
     bool hasWriteLock;

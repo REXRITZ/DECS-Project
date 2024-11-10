@@ -1,4 +1,4 @@
-abc.txt READ ./files/abc.txt 0 1 ritesh 12345 24
-pqr.txt WRITE ./files/pqr.txt 1 0 sri 123435 55
-pqr.txt WRITE ./files/pqr.txt 1 0 sri 123435 55
-pqr.txt WRITE ./files/pqr.txt 1 0 sri 123435 55
+abc.txt ./files/abc.txt 0 1 ritesh 12345 24
+pqr.txt ./files/pqr.txt 1 0 sri 123435 55
+pqr.txt ./files/pqr.txt 1 0 sri 123435 55
+pqr.txt ./files/pqr.txt 1 0 sri 123435 55

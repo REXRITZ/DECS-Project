@@ -17,7 +17,7 @@ typedef struct {
     string path;
     bool isModified;
     bool hasWriteLock;
-    string username;
+    string owner;   // username of file owner
     time_t lastModified;
     int currentReaders;
     pthread_mutex_t mutex;

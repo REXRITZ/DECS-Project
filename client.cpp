@@ -131,12 +131,14 @@ public:
         string command = ADD;
         command += " " + filepath;
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
-            cout << "addLen: write failed" << endl;
+            cout << "addFile: write failed" << endl;
+            exit(EXIT_FAILURE);
         }
 
         char resp[BUF_SIZE] = {0};
         if (read(sockfd, resp, sizeof(BUF_SIZE)) < 0) {
-
+            cout << "addFile: read failed" << endl;
+            exit(EXIT_FAILURE);
         }
         if(strcmp(resp,"OK") == 0)
             cout << filepath << " added successfully." << endl;
@@ -153,6 +155,7 @@ public:
 
     void startClientLoop() {
         string command;
+        cin.ignore();
         while (true) {
             cout << ">> ";
             if (getline(cin, command)) {

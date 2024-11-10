@@ -4,17 +4,25 @@
 #include<pthread.h>
 using namespace std;
 
+typedef struct FileMetaData FileMetaData;
 
-typedef struct {
+struct FileMetaData{
     // int id;
     string filename; // filename can also be id??
     string path;
-    bool isModified;
-    bool hasWriteLock;
+    bool isModified = false;
+    bool hasWriteLock = false;
     string owner;   // username of file owner
     time_t lastModified;
     int currentReaders;
     pthread_mutex_t mutex;
     pthread_cond_t cond; 
     // add methods here
-} FileMetaData;
+
+    FileMetaData() {}
+
+    FileMetaData(string filename) {
+        this->filename = filename;
+    }
+
+};

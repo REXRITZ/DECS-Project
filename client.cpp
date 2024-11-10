@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
     client->startClientLoop();
 
     // Client side commands:
-    // listall - to list all files present on server with current readers/writers count.
+    // Done -- listall - to list all files present on server with current readers/writers count.
     // checkout - download file from server and store on client side.
     // commit - update file on server -> syncronized
     // Done -- add - add a new file to the server

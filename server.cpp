@@ -182,7 +182,7 @@ public:
         unordered_map<string, FileMetaData>:: iterator it;
         string resp = "";
         for (it = filesMap.begin(); it != filesMap.end(); ++it) {
-            resp += it->first + "\n";
+            resp += "filename: " + it->first + ", current readers: " + to_string(it->second.currentReaders) + "\n";
         }
         return resp.c_str();
     }

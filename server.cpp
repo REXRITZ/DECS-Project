@@ -125,6 +125,8 @@ public:
                 } else if(command[0] == "quit") {
                     printUsers();
                     quit(connFd, clientid);
+                } else if(command[0] == "checkout") {
+                    checkout(command[1], connFd);
                 } else {
                     cout << "Enter a valid command!" << endl;
                 }
@@ -155,6 +157,26 @@ public:
         
         activeUsers[user.username] = user;
         return true;
+    }
+
+    void checkout(string filename, int connFd) {
+        if(filesMap.find(filename) == filesMap.end()) {
+            write(connFd, "Given filename does not exists!", 29);
+            return;
+        }
+        write(connFd, "OK", 2);
+        FileMetaData fileMetaData = filesMap[filename];
+        int fd = open(fileMetaData.path.c_str(), O_RDONLY);
+        write(connFd, &fileMetaData, sizeof(FileMetaData));
+        char buff[BUF_SIZE] = {0};
+        
+        while(1) {
+            int bytesread = read(fd, buff, BUF_SIZE-1);
+            if(bytesread <= 0)
+                break;
+            buff[bytesread] = '\0';
+            write(connFd, buff, bytesread);
+        }
     }
 
     const char* addFile(string filename, string clientid) {

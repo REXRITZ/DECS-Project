@@ -119,6 +119,9 @@ public:
                     }
                     const char* resp = addFile(command[1], clientid);
                     write(connFd, resp, strlen(resp));
+                } else if(command[0] == "listall") {
+                    const char* resp = listall();
+                    write(connFd, resp, strlen(resp));
                 } else if(command[0] == "quit") {
                     printUsers();
                     quit(connFd, clientid);
@@ -174,6 +177,16 @@ public:
         filesMap[filename] = fileMetaData;
         return "OK";
     }
+
+    const char* listall() {
+        unordered_map<string, FileMetaData>:: iterator it;
+        string resp = "";
+        for (it = filesMap.begin(); it != filesMap.end(); ++it) {
+            resp += it->first + "\n";
+        }
+        return resp.c_str();
+    }
+
     void printUsers() {
         int i = 1;
         for (auto user : users) {

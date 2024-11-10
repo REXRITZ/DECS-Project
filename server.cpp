@@ -9,12 +9,14 @@ using namespace std;
 #define BUF_SIZE 1024
 #define USER_DATA_PATH "./usermetadata.txt"
 #define FILES_METADATA_PATH "./filemetadata.txt"
+#define FILE_DIR_PATH "./files/"
 
 class Server {
     int sockfd;
     unordered_map<string, FileMetaData> filesMap;
     unordered_map<string, User> users;
-    unordered_map<string, User> activeUsers; //mapping of ip address to user
+    unordered_map<string, User> activeUsers; 
+    unordered_map<string, User> clientMap; //mapping of ip address to user
     queue<int>connQueue; // queue of connection fds
 public:
 
@@ -86,9 +88,9 @@ public:
                 perror("accept connection error\n");
                 return;
             }   
-            string ip = inet_ntoa(clientAddr.sin_addr);
-            // User user;
-            // recv(connFd, &user, sizeof(User), 0);
+            int port = ntohs(clientAddr.sin_port);
+            string clientid = inet_ntoa(clientAddr.sin_addr);
+            clientid += ":" + to_string(port);
             
             while(1) {
                 // read input commands here
@@ -104,7 +106,15 @@ public:
                 }
                 if(command[0] == "login") {
                     User user(command[1], command[2]);
-                    const char* resp = authenticateUser(user);
+                    const char* resp = authenticateUser(user, clientid);
+                    write(connFd, resp, strlen(resp));
+                } else if(command[0] == "add") {
+                    if(command.size() != 2) {
+                        write(connFd, "Usage: login <filename.txt>", 27);
+                        continue;
+                    }
+
+                    const char* resp = addFile(command[1], clientid);
                     write(connFd, resp, strlen(resp));
                 }
             }
@@ -112,16 +122,18 @@ public:
         }
     }
 
-    const char* authenticateUser(User user) {
+    const char* authenticateUser(User user, string clientid) {
         if(users.find(user.username) == users.end()) {
             ofstream file;
             file.open(USER_DATA_PATH, ios_base::app);
             file << user.username << " " << user.password << " " << endl;
             users[user.username] = user;
         }
+        //TODO: add password validation also lol!
         if(activeUsers.find(user.username) != activeUsers.end())
-            return "User with given username already exists!";
+            return "User with given username already logged in!";
         activeUsers[user.username] = user;
+        clientMap[clientid] = user;
         return "OK";
     }
 
@@ -133,6 +145,23 @@ public:
         return true;
     }
 
+    const char* addFile(string filename, string clientid) {
+        if(filesMap.find(filename) != filesMap.end()) {
+            return "File with given name already exists!";
+        }
+        FileMetaData fileMetaData(filename);
+        fileMetaData.path = FILE_DIR_PATH + filename;
+        fileMetaData.lastModified = time(nullptr); // unix epoch timestamp
+        fileMetaData.owner = clientMap[clientid].username;
+        // write to persist file meta data info
+        ofstream file;
+        file.open(fileMetaData.path, ios_base::app);
+        file << fileMetaData.filename << fileMetaData.path << fileMetaData.isModified 
+                << fileMetaData.hasWriteLock << fileMetaData.owner << fileMetaData.lastModified 
+                << fileMetaData.currentReaders;
+        filesMap[filename] = fileMetaData;
+        return "OK";
+    }
     void printUsers() {
         int i = 1;
         for (auto user : users) {

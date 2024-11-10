@@ -14,7 +14,7 @@ struct FileMetaData{
     bool hasWriteLock = false;
     string owner;   // username of file owner
     time_t lastModified;
-    int currentReaders;
+    int currentReaders = 0;
     pthread_mutex_t mutex;
     pthread_cond_t cond; 
     // add methods here

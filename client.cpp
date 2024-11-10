@@ -198,7 +198,7 @@ public:
                         continue;
                     }
                     addFile(cmds[1]);
-                } else if (cmds[0].compare(LISTALL)) {
+                } else if (cmds[0].compare(LISTALL) == 0) {
                     listAll();
                 } else {
                     cout << "Enter a valid command!" << endl;

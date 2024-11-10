@@ -95,10 +95,13 @@ public:
             while(1) {
                 // read input commands here
                 char buff[BUF_SIZE] = {0};
-                read(connFd, buff, sizeof(buff));
+                if(read(connFd, buff, sizeof(buff)) < 0) {
+                    perror("commmand read: read failed");
+                    break;
+                }
                 if(strlen(buff) == 0)
-                    continue;
-                cout<<"Buff: "<<buff<<endl;
+                    break;
+                cout<<"Request: "<< buff <<endl;
                 vector<string>command;
                 char* token = strtok(buff, " ");
                 while(token) {
@@ -114,14 +117,17 @@ public:
                         write(connFd, "Usage: login <filename.txt>", 27);
                         continue;
                     }
-
                     const char* resp = addFile(command[1], clientid);
                     write(connFd, resp, strlen(resp));
+                } else if(command[0] == "quit") {
+                    printUsers();
+                    quit(connFd, clientid);
                 } else {
                     cout << "Enter a valid command!" << endl;
                 }
             }
-            
+            cout<<"Connection with client terminated successfully"<<endl;
+            printUsers();
         }
     }
 
@@ -175,6 +181,20 @@ public:
                  << ", password: " << user.second.password << endl;
         }
     }
+
+    void printFileMetaData() {
+        for (auto file : filesMap) {
+            cout << "filename " << file.second.filename << endl;
+        }
+    }
+
+    void quit(int connFd, string clientid) {
+        cout<<"Inside quit" << endl;
+        User user = clientMap[clientid];
+        clientMap.erase(clientid);
+        activeUsers.erase(user.username);
+        close(connFd);
+    }
 };
 
 int main(int argc, char** argv) {
@@ -200,6 +220,7 @@ int main(int argc, char** argv) {
     if (server->loadFileMetaData() < 0) {
         cout << "ERROR: server->loadFileMetaData()" << endl;
     }
+    server->printFileMetaData();
     server->startServer(port, serverAddr);
     server->startListening();
 }

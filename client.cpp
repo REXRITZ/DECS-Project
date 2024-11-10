@@ -79,7 +79,7 @@ public:
         while(1) {
             login();
             char resp[BUF_SIZE] = {0};
-            read(sockfd, resp, sizeof(BUF_SIZE));
+            read(sockfd, resp, BUF_SIZE);
             if(strcmp(resp,"OK") == 0)
                 break;
             cout<<resp<<endl;
@@ -136,7 +136,7 @@ public:
         }
 
         char resp[BUF_SIZE] = {0};
-        if (read(sockfd, resp, sizeof(BUF_SIZE)) < 0) {
+        if (read(sockfd, resp, BUF_SIZE) < 0) {
             cout << "addFile: read failed" << endl;
             exit(EXIT_FAILURE);
         }
@@ -188,7 +188,22 @@ public:
         }
     }
 
+    void quit() {
+        write(sockfd, QUIT, strlen(QUIT));
+        shutdown(sockfd, SHUT_WR);
+        close(sockfd);
+    }
+
 };
+
+// global variable
+Client* client;
+
+void handleSignal(int signal) {
+    cout<<"Inside handler\n";
+    client->quit();
+    exit(0);
+}
 
 int main(int argc, char **argv) {
     
@@ -197,10 +212,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    if (signal(SIGINT, handleSignal) == SIG_ERR) {
+        cerr << "Error setting up signal handler" << endl;
+        return 1;
+    }
+
     int port = atoi(argv[2]);
     char* ip = argv[1];
 
-    Client* client = new Client();
+    client = new Client();
 
     // client->loadFileMetaData();
     if (client->startServer(port, ip) < 0) {

@@ -9,6 +9,7 @@ using namespace std;
 #define FILES_METADATA_PATH "./filemetadata.txt"
 
 typedef struct {
+    string username;
     string name;
     vector<string> args;
 } Command;
@@ -40,7 +41,7 @@ public:
 
         ifstream file(FILES_METADATA_PATH);
         if(!file.is_open()) {
-            printf("file open error\n");
+            cout<<"file open error"<<endl;
             return -1;
         }
         string line;
@@ -49,17 +50,17 @@ public:
             stringstream ss(line);
             string perm;
             ss  >> metadata.filename >> perm >> metadata.path >> metadata.isModified 
-                >> metadata.hasWriteLock >> metadata.username >> metadata.lastModified 
+                >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
                 >> metadata.currentReaders;
             if(perm == "WRITE")
                 metadata.perms = WRITE;
             else if(perm == "READ")
                 metadata.perms = READ;
             else {
-                printf("Invalid permission value\n");
+                cout<<"Invalid permission value"<<endl;
                 return -1;
             }
-            filesMap[metadata.username] = metadata;
+            filesMap[metadata.owner] = metadata;
         }
         return 0;
     }
@@ -74,17 +75,66 @@ public:
         serverAddr.sin_port = htons(port);
 
         if(inet_pton(AF_INET, ip, &serverAddr.sin_addr) <= 0) {
-            printf("Invalid address/ Address not supported\n");
+            cout<<"Invalid address/ Address not supported"<<endl;
             return -1;
         }
 
         if(connect(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
-            printf("Connection Failed\n");
+            perror("Connection Failed\n");
             return -1;
         }
         //TODO: implement handshake with server
-        printf("Connected to server successfully.\n");
+        login();
+        cout<<"Connected to server successfully."<<endl;
+    }
 
+    int login() {
+        //check from server side whether user is registered or not
+        return 0;
+    }
+
+    int registerUser() {
+        User tempuser;
+        cout<<"----Register----"<<endl;
+        cout<<"Enter username: ";
+        cin>>tempuser.username;
+        cout<<"Enter name: ";
+        cin>>tempuser.name;
+        cout<<"Enter password: ";
+        cin>>tempuser.password;
+
+        //register user on server and check if username is already taken or not
+        return 0;
+    }
+
+    int checkout() {
+        // checkout feature
+        return 0;
+    }
+
+    int commit() {
+        // commit feature
+        return 0;
+    }
+
+    int deleteFile(string filename) {
+        FileMetaData file;
+        if(filesMap.find(filename) == filesMap.end()) {
+            cout<<"Invalid filename given"<<endl;
+            return -1;
+        }
+        file = filesMap[filename];
+        if(user.username == file.owner) {
+            cout<<"Permission denied. You are not the file owner"<<endl;
+            return -1;
+        }
+        // delete file from server and locally also
+        return 0;
+    }
+
+    int addFile(string filepath) {
+        // add new file to server
+        return 0;
     }
 
     void displayFileMetaData() {

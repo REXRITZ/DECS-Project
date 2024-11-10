@@ -9,6 +9,14 @@ using namespace std;
 #define FILES_METADATA_PATH "./filemetadata.txt"
 #define BUF_SIZE 1024
 
+// Client-side commands.
+#define QUIT "quit"
+#define LISTALL "listall"
+#define CHECKOUT "checkout"
+#define COMMIT "commit"
+#define ADD "add"
+#define DELETE "delete"
+
 typedef struct {
     string username;
     string name;
@@ -71,7 +79,7 @@ public:
         while(1) {
             login();
             char resp[BUF_SIZE] = {0};
-            recv(sockfd, resp, sizeof(BUF_SIZE), 0);
+            read(sockfd, resp, sizeof(BUF_SIZE));
             if(strcmp(resp,"OK") == 0)
                 break;
             cout<<resp<<endl;
@@ -120,12 +128,60 @@ public:
 
     int addFile(string filepath) {
         // add new file to server
+        string command = ADD;
+        command += " " + filepath;
+        if (write(sockfd, filepath.c_str(), filepath.length() + 1) < 0) {
+            cout << "addLen: write failed" << endl;
+        }
+
+        char resp[BUF_SIZE] = {0};
+        if (read(sockfd, resp, sizeof(BUF_SIZE)) < 0) {
+
+        }
+        if(strcmp(resp,"OK") == 0)
+            cout << filepath << " added successfully." << endl;
+        else
+            cout<<resp<<endl;
         return 0;
     }
 
     void displayFileMetaData() {
         for(auto file : filesMap) {
             cout<<file.second.filename<<" "<<file.second.currentReaders<<endl;
+        }
+    }
+
+    void startClientLoop() {
+        string command;
+        while (true) {
+            cout << ">> ";
+            if (getline(cin, command)) {
+                stringstream cmdSS(command);
+                vector<string> cmds;
+                string word;
+                while (cmdSS >> word) {
+                    cmds.push_back(word);
+                }
+                if (cmds.size() == 0) {
+                    cout << "Enter a valid command!" << endl;
+                } else if (cmds[0].compare(QUIT) == 0) {
+                    // TODO: Inform server.
+                    break;
+                } else if (cmds[0].compare(ADD) == 0) {
+                    if (cmds.size() < 2) {
+                        cout << "Usage: add <file-name.txt>" << endl;
+                        continue;
+                    }
+
+                    if (cmds[1].length() < 5 || cmds[1].substr(cmds[1].length() - 4).compare(".txt") != 0) {
+                        cout << "add: Enter a valid file name ending with '.txt'." << endl;
+                        continue;
+                    }
+                    addFile(cmds[1]);
+                } else {
+                    cout << "Enter a valid command!" << endl;
+                }
+            }
         }
     }
 
@@ -144,8 +200,11 @@ int main(int argc, char **argv) {
     Client* client = new Client();
 
     // client->loadFileMetaData();
-    client->startServer(port, ip);
-    
+    if (client->startServer(port, ip) < 0) {
+        return 1;
+    }
+
+    client->startClientLoop();
 
     // Client side commands:
     // listall - to list all files present on server with current readers/writers count.

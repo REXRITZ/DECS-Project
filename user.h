@@ -1,11 +1,18 @@
 #include "file.h"
 
+typedef struct User User;
 
-typedef struct {
+struct User{
     string username;
-    string name;
     string password;
     unordered_map<string, FileMetaData> files;
     string filesDir;
     string metadataPath;
-} User;
+
+    User() {}
+
+    User(string username, string pass) {
+        this->username = username;
+        password = pass;
+    }
+};

@@ -7,6 +7,7 @@ using namespace std;
 
 #define IP_SIZE 4
 #define FILES_METADATA_PATH "./filemetadata.txt"
+#define BUF_SIZE 1024
 
 typedef struct {
     string username;
@@ -24,9 +25,7 @@ class Client {
 
 public:
 
-    Client(int port, char *ip) {
-        strcpy(this->ip, ip);
-        this->port = port;
+    Client() {
         sockfd = -1;
         memset(&serverAddr, 0, sizeof(sockaddr_in));
     }
@@ -65,7 +64,7 @@ public:
         return 0;
     }
 
-    int startServer() {
+    int startServer(int port, char* ip) {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if(sockfd < 0) {
             perror("socket creation failed\n");
@@ -83,28 +82,29 @@ public:
             perror("Connection Failed\n");
             return -1;
         }
-        //TODO: implement handshake with server
-        login();
+        while(1) {
+            login();
+            char resp[BUF_SIZE] = {0};
+            recv(sockfd, resp, sizeof(BUF_SIZE), 0);
+            if(strcmp(resp,"OK") == 0)
+                break;
+            cout<<resp<<endl;
+        }
         cout<<"Connected to server successfully."<<endl;
-    }
-
-    int login() {
-        //check from server side whether user is registered or not
         return 0;
     }
 
-    int registerUser() {
+    void login() {
+        //check from server side whether user is registered or not
         User tempuser;
         cout<<"----Register----"<<endl;
         cout<<"Enter username: ";
         cin>>tempuser.username;
-        cout<<"Enter name: ";
-        cin>>tempuser.name;
         cout<<"Enter password: ";
         cin>>tempuser.password;
-
-        //register user on server and check if username is already taken or not
-        return 0;
+        char data[BUF_SIZE] = {0};
+        snprintf(data, BUF_SIZE, "login %s %s", tempuser.username.c_str(), tempuser.password.c_str());
+        send(sockfd, data, strlen(data), 0);
     }
 
     int checkout() {
@@ -155,10 +155,10 @@ int main(int argc, char **argv) {
     int port = atoi(argv[2]);
     char* ip = argv[1];
 
-    Client* client = new Client(port, ip);
+    Client* client = new Client();
 
-    client->loadFileMetaData();
-    client->displayFileMetaData();
+    // client->loadFileMetaData();
+    client->startServer(port, ip);
     
 
     // Client side commands:

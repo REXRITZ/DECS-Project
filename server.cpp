@@ -6,6 +6,8 @@
 using namespace std;
 
 #define BACKLOG 4096
+#define BUF_SIZE 1024
+#define USER_DATA_PATH "./usermetadata.txt"
 
 class Server {
     int sockfd;
@@ -45,22 +47,44 @@ public:
                 return;
             }   
             string ip = inet_ntoa(clientAddr.sin_addr);
-            User user;
-            recv(connFd, &user, sizeof(User), 0);
-            
+            // User user;
+            // recv(connFd, &user, sizeof(User), 0);
+            char buff[BUF_SIZE] = {0};
             while(1) {
                 // read input commands here
+                recv(connFd, buff, sizeof(buff), 0);
+                vector<string>command;
+                char* token = strtok(buff, " ");
+                while(token) {
+                    command.push_back(token);
+                    token = strtok(NULL, " ");
+                }
+                if(command[0] == "login") {
+                    User user(command[1], command[2]);
+                    const char* resp = authenticateUser(user);
+                    send(connFd, resp, strlen(resp),0);
+                }
             }
             
         }
     }
 
-    bool isAuthenticated(User user, int connFd) {
+    const char* authenticateUser(User user) {
         if(users.find(user.username) == users.end()) {
-            char* resp = "err:user not found";
-            send(connFd, resp, strlen(resp),0);
-            return false;
+            ofstream file(USER_DATA_PATH);
+            file << user.username << " " << user.password << " " << endl;
+            users[user.username] = user;
         }
+        if(activeUsers.find(user.username) != activeUsers.end())
+            return "User with given username already exists!";
+        activeUsers[user.username] = user;
+        return "OK";
+    }
+
+    bool addUser(User user) {
+        if(users.find(user.username) == users.end())
+            return false;
+        
         activeUsers[user.username] = user;
         return true;
     }
@@ -78,8 +102,9 @@ int main(int argc, char** argv) {
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port);
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
 
     Server* server = new Server();
-    // server->startServer(port, serverAddr);
-    server.startListening();
+    server->startServer(port, serverAddr);
+    server->startListening();
 }

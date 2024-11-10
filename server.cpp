@@ -8,6 +8,7 @@ using namespace std;
 #define BACKLOG 4096
 #define BUF_SIZE 1024
 #define USER_DATA_PATH "./usermetadata.txt"
+#define FILES_METADATA_PATH "./filemetadata.txt"
 
 class Server {
     int sockfd;
@@ -16,6 +17,59 @@ class Server {
     unordered_map<string, User> activeUsers; //mapping of ip address to user
     queue<int>connQueue; // queue of connection fds
 public:
+
+    int loadFileMetaData() {
+        
+        // int fd = open(FILES_METADATA_PATH, O_RDONLY);
+        // if(fd < 0) {
+        //     perror("failed to open fd\n");
+        //     return -1;
+        // }
+
+        ifstream file(FILES_METADATA_PATH);
+        if(!file.is_open()) {
+            cout<<"file open error"<<endl;
+            return -1;
+        }
+        string line;
+        FileMetaData metadata;
+        while(getline(file, line)) {
+            stringstream ss(line);
+            string perm;
+            ss  >> metadata.filename >> perm >> metadata.path >> metadata.isModified 
+                >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
+                >> metadata.currentReaders;
+            if(perm == "WRITE")
+                metadata.perms = WRITE;
+            else if(perm == "READ")
+                metadata.perms = READ;
+            else {
+                cout<<"Invalid permission value"<<endl;
+                return -1;
+            }
+            filesMap[metadata.owner] = metadata;
+        }
+        return 0;
+    }
+
+    int loadUserMetaData() {
+        ifstream file(USER_DATA_PATH);
+        if(!file.is_open()) {
+            cout << "file open error" << endl;
+            return -1;
+        }
+
+        string line;
+        
+        while(getline(file, line)) {
+            stringstream ss(line);
+            User user;
+            ss >> user.username >> user.password;
+            users[user.username] = user;
+        }
+
+        return 0;
+    }
 
     int startServer(int port, sockaddr_in serverAddr) {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -88,6 +142,14 @@ public:
         activeUsers[user.username] = user;
         return true;
     }
+
+    void printUsers() {
+        int i = 1;
+        for (auto user : users) {
+            cout << "User " << i++ << "-> username: " << user.first
+                 << ", password: " << user.second.password << endl;
+        }
+    }
 };
 
 int main(int argc, char** argv) {
@@ -105,6 +167,14 @@ int main(int argc, char** argv) {
     serverAddr.sin_addr.s_addr = INADDR_ANY;
 
     Server* server = new Server();
+    if (server->loadUserMetaData() < 0) {
+        cout << "ERROR: server->loadUserMetaData()" << endl;
+    }
+    server->printUsers();
+    
+    // if (server->loadFileMetaData() < 0) {
+    //     cout << "ERROR: server->loadFileMetaData()" << endl;
+    // }
     server->startServer(port, serverAddr);
     server->startListening();
 }

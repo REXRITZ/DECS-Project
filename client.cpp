@@ -147,6 +147,22 @@ public:
         return 0;
     }
 
+    int listAll() {
+        if (write(sockfd, LISTALL, strlen(LISTALL) + 1) < 0) {
+            cout << "listAll: write failed" << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        char resp[BUF_SIZE] = {0};
+        if (read(sockfd, resp, BUF_SIZE) < 0) {
+            cout << "listAll: read failed" << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        cout << resp << endl;
+        return 0;
+    }
+
     void displayFileMetaData() {
         for(auto file : filesMap) {
             cout<<file.second.filename<<" "<<file.second.currentReaders<<endl;
@@ -169,6 +185,7 @@ public:
                     continue;
                 } else if (cmds[0].compare(QUIT) == 0) {
                     // TODO: Inform server.
+                    quit();
                     break;
                 } else if (cmds[0].compare(ADD) == 0) {
                     if (cmds.size() < 2) {
@@ -181,6 +198,8 @@ public:
                         continue;
                     }
                     addFile(cmds[1]);
+                } else if (cmds[0].compare(LISTALL)) {
+                    listAll();
                 } else {
                     cout << "Enter a valid command!" << endl;
                 }

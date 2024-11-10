@@ -130,7 +130,7 @@ public:
         // add new file to server
         string command = ADD;
         command += " " + filepath;
-        if (write(sockfd, filepath.c_str(), filepath.length() + 1) < 0) {
+        if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
             cout << "addLen: write failed" << endl;
         }
 
@@ -163,7 +163,7 @@ public:
                     cmds.push_back(word);
                 }
                 if (cmds.size() == 0) {
-                    cout << "Enter a valid command!" << endl;
+                    continue;
                 } else if (cmds[0].compare(QUIT) == 0) {
                     // TODO: Inform server.
                     break;

@@ -127,6 +127,8 @@ public:
                     quit(connFd, clientid);
                 } else if(command[0] == "checkout") {
                     checkout(command[1], connFd);
+                } else if(command[0] == "commit") {
+                    commit(command[1], connFd);
                 } else {
                     cout << "Enter a valid command!" << endl;
                 }
@@ -181,6 +183,31 @@ public:
         write(connFd, "OK", 2);
 
         cout << "done\n";
+    }
+
+    void commit(string filename, int connFd) {
+        if(filesMap.find(filename) == filesMap.end()) {
+            write(connFd, "Given filename does not exists!", 29);
+            return;
+        }
+        FileMetaData fileMetaData = filesMap[filename];
+        if(fileMetaData.hasWriteLock) {
+            write(connFd, "Write lock already exists on the file!", 38);
+            return;
+        }
+        write(connFd, "OK", 2);
+        fileMetaData.hasWriteLock = true;
+        char buff[BUF_SIZE] = {0};
+        ofstream file(fileMetaData.path);
+        
+        while(1) {
+            int bytesread = read(connFd, buff, BUF_SIZE-1);
+            if(bytesread <= 0)
+                break;
+            buff[bytesread] = '\0';
+            file << buff;
+        }
+        file.close();
     }
 
     const char* addFile(string filename, string clientid) {

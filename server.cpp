@@ -213,7 +213,7 @@ public:
         bool oAtEnd = false;
         while (true) {
             int readSz = 0;
-            if ((readSz = read(sockfd, buff, BUF_SIZE-1)) < 0) {
+            if ((readSz = read(connFd, buff, BUF_SIZE-1)) < 0) {
                 perror("commit: read failed");
                 break;
             }

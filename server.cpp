@@ -148,6 +148,8 @@ public:
         //TODO: add password validation also lol!
         if(activeUsers.find(user.username) != activeUsers.end())
             return "User with given username already logged in!";
+        if(users[user.username].password != user.password)
+            return "Invalid password!";
         activeUsers[user.username] = user;
         clientMap[clientid] = user;
         return "OK";

@@ -426,8 +426,8 @@ int main(int argc, char **argv) {
 
     // Client side commands:
     // Done -- listall - to list all files present on server with current readers/writers count.
-    // checkout - download file from server and store on client side.
-    // commit - update file on server -> syncronized
+    // Done -- checkout - download file from server and store on client side.
+    // Done -- commit - update file on server -> syncronized
     // Done -- add - add a new file to the server
     // delete - delete a file on the server
     

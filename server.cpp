@@ -199,14 +199,57 @@ public:
         }
         write(connFd, "OK", 2);
         fileMetaData.hasWriteLock = true;
+        
+        // while(1) {
+        //     int bytesread = read(connFd, buff, BUF_SIZE-1);
+        //     if(bytesread <= 0)
+        //         break;
+        //     buff[bytesread] = '\0';
+        //     file << buff;
+        // }
+        
         char buff[BUF_SIZE] = {0};
         ofstream file(fileMetaData.path);
-        
-        while(1) {
-            int bytesread = read(connFd, buff, BUF_SIZE-1);
-            if(bytesread <= 0)
+        bool oAtEnd = false;
+        while (true) {
+            int readSz = 0;
+            if ((readSz = read(sockfd, buff, BUF_SIZE-1)) < 0) {
+                perror("commit: read failed");
                 break;
-            buff[bytesread] = '\0';
+            }
+
+            // cout << buff << '\n' << readSz << '\n';
+            // cout << "readSz: " << readSz << "; readSz - 2: " << buff[readSz - 2] << "; readSz - 1: " << buff[readSz - 1] << "oAtEnd: " << oAtEnd << '\n';
+            if (readSz == 0) {
+                break;
+            }
+            buff[readSz] = '\0';
+
+            if (readSz >= 2 && buff[readSz - 2] == 'O' && buff[readSz - 1] == 'K') {
+                buff[readSz - 2] = buff[readSz - 1] = '\0';
+                if (oAtEnd) {
+                    file << "O";
+                }
+                file << buff;
+                break;
+            }
+
+            if (readSz == BUF_SIZE - 1 && buff[readSz - 1] == 'O') {
+                buff[readSz - 1] = '\0';
+                file << buff;
+                oAtEnd = true;
+                continue;
+            }
+
+            if (oAtEnd) {
+                if (readSz == 1 && buff[readSz - 1] == 'K') {
+                    break;
+                } else {
+                    oAtEnd = false;
+                    file << "O";
+                }
+            }
+
             file << buff;
         }
         file.close();

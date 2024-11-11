@@ -178,6 +178,9 @@ public:
             buff[bytesread] = '\0';
             write(connFd, buff, bytesread);
         }
+        write(connFd, "OK", 2);
+
+        cout << "done\n";
     }
 
     const char* addFile(string filename, string clientid) {

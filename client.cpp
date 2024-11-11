@@ -2,6 +2,7 @@
 #include<sys/socket.h>
 #include<fcntl.h>
 #include<arpa/inet.h>
+#include<sys/stat.h>
 #include "user.h"
 using namespace std;
 
@@ -38,11 +39,26 @@ public:
         memset(&serverAddr, 0, sizeof(sockaddr_in));
     }
 
-    int loadFileMetaData() {
+    void checkDir(string dirPath) {
+        struct stat st;
+        if (stat(dirPath.c_str(), &st) == -1) {
+            if (mkdir(dirPath.c_str(), 0777) == -1) {
+                std::cerr << "Error: Could not create folder " << dirPath << std::endl;
+                return;
+            }
+        }
+    }
 
-        ifstream file(FILES_METADATA_PATH);
+    void checkDirs() {
+        checkDir("./" + user.username);
+        checkDir(user.filesDir);
+    }
+
+    int loadFileMetaData() {
+        checkDirs();
+        ifstream file(user.metadataPath);
         if(!file.is_open()) {
-            cout<<"file open error"<<endl;
+            cout << "Its empty here." << endl;
             return -1;
         }
         string line;
@@ -84,20 +100,24 @@ public:
                 break;
             cout<<resp<<endl;
         }
+
+        user.metadataPath = "./" + user.username + "/filemetadata.txt";
+        user.filesDir = "./" + user.username + "/files";
+        cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
+        loadFileMetaData();
         cout<<"Connected to server successfully."<<endl;
         return 0;
     }
 
     void login() {
         //check from server side whether user is registered or not
-        User tempuser;
         cout<<"----Login----"<<endl;
         cout<<"Enter username: ";
-        cin>>tempuser.username;
+        cin>>user.username;
         cout<<"Enter password: ";
-        cin>>tempuser.password;
+        cin>>user.password;
         char data[BUF_SIZE] = {0};
-        snprintf(data, BUF_SIZE, "login %s %s", tempuser.username.c_str(), tempuser.password.c_str());
+        snprintf(data, BUF_SIZE, "login %s %s", user.username.c_str(), user.password.c_str());
         send(sockfd, data, strlen(data), 0);
     }
 
@@ -163,10 +183,92 @@ public:
         return 0;
     }
 
+    void writeFileMetaData() {
+        ofstream file;
+        cout << "checking dirs\n";
+        checkDirs();
+        cout << "checking dirs done\n";
+        string fileMetaDataPath = "./" + user.username + "/filemetadata.txt";
+        file.open(fileMetaDataPath);
+        for (auto fileMD : filesMap) {
+            file << fileMD.second.filename << " " << fileMD.second.path << " " << fileMD.second.isModified 
+                 << " " << fileMD.second.hasWriteLock << " " << fileMD.second.owner << " " << fileMD.second.lastModified 
+                 << " " << fileMD.second.currentReaders << endl;
+        }
+        cout << "writeFileMetadata done\n";
+    }
+
+    int checkout(string fileName) {
+        string command = CHECKOUT;
+        command += " " + fileName;
+        if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
+            cout << "addFile: write failed" << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        char resp[BUF_SIZE] = {0};
+        if (read(sockfd, resp, BUF_SIZE) < 0) {
+            cout << "addFile: read failed" << endl;
+            exit(EXIT_FAILURE);
+        }
+        if(strcmp(resp,"OK") == 0) {
+            FileMetaData fileMetaData;
+            char fileMetaDataString[BUF_SIZE] = {0};
+            cout << fileName << " is present. Starting download." << endl;
+            // Read file metadata.
+            cout << "reading filemetadata\n";
+            read(sockfd, fileMetaDataString, BUF_SIZE-1);
+            fileMetaData.fromString(fileMetaDataString);
+            cout << "reading filemetadata done\n";
+            cout << "fn: " << fileMetaData.filename << endl;
+            fileMetaData.path = user.filesDir + "/" + fileName;
+            filesMap[fileName] = fileMetaData;
+
+            // Update filemetadata.txt
+            writeFileMetaData();
+
+            cout << "starting reading.\n";
+            // Read the file.
+            ofstream file;
+            file.open(user.filesDir + "/" + fileName);
+            char buff[BUF_SIZE] = {0};
+            while (true) {
+                int readSz = 0;
+                if ((readSz = read(sockfd, buff, BUF_SIZE-1)) < 0) {
+                    perror("checkout: read failed");
+                    break;
+                }
+
+                cout << buff << '\n' << readSz << '\n';
+                cout << "readSz: " << readSz << "; readSz - 2: " << buff[readSz - 2] << "; readSz - 1: " << buff[readSz - 1] << '\n';
+                if (readSz == 0) {
+                    break;
+                }
+                buff[readSz] = '\0';
+
+                if (readSz >= 2 && buff[readSz - 2] == 'O' && buff[readSz - 1] == 'K') {
+                    buff[readSz - 2] = buff[readSz - 1] = '\0';
+                    file << buff;
+                    break;
+                }
+
+                file << buff;
+            }
+            file.close();
+        }
+        else
+            cout << resp << endl;
+        return 0;
+    }
+
     void displayFileMetaData() {
         for(auto file : filesMap) {
             cout<<file.second.filename<<" "<<file.second.currentReaders<<endl;
         }
+    }
+
+    bool fileNameIsNotValid(string fileName) {
+        return (fileName.length() < 5 || fileName.substr(fileName.length() - 4).compare(".txt") != 0);
     }
 
     void startClientLoop() {
@@ -193,13 +295,24 @@ public:
                         continue;
                     }
 
-                    if (cmds[1].length() < 5 || cmds[1].substr(cmds[1].length() - 4).compare(".txt") != 0) {
+                    if (fileNameIsNotValid(cmds[1])) {
                         cout << "add: Enter a valid file name ending with '.txt'." << endl;
                         continue;
                     }
                     addFile(cmds[1]);
                 } else if (cmds[0].compare(LISTALL) == 0) {
                     listAll();
+                } else if (cmds[0].compare(CHECKOUT) == 0) {
+                    if (cmds.size() < 2) {
+                        cout << "Usage: checkout <file-name.txt>" << endl;
+                        continue;
+                    }
+                    
+                    if (fileNameIsNotValid(cmds[1])) {
+                        cout << "checkout: Enter a valid file name ending with '.txt'." << endl;
+                        continue;
+                    }
+                    checkout(cmds[1]);
                 } else {
                     cout << "Enter a valid command!" << endl;
                 }
@@ -241,7 +354,6 @@ int main(int argc, char **argv) {
 
     client = new Client();
 
-    // client->loadFileMetaData();
     if (client->startServer(port, ip) < 0) {
         return 1;
     }

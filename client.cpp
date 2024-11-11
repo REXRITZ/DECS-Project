@@ -130,6 +130,7 @@ public:
             cout << "commit: write failed" << endl;
             exit(EXIT_FAILURE);
         }
+        // cout << "sent command: "<< command << endl;
 
         char resp[BUF_SIZE] = {0};
         if (read(sockfd, resp, BUF_SIZE) < 0) {
@@ -143,6 +144,7 @@ public:
         }
         
         char buff[BUF_SIZE] = {0};
+        // cout << "path of file to be written: " << user.filesDir + "/" + fileName << endl;
         int fd = open((user.filesDir + "/" + fileName).c_str(), O_RDONLY);
         
         if (fd < 0) {
@@ -151,7 +153,7 @@ public:
         }
 
         while(1) {
-            int bytesread = read(sockfd, buff, BUF_SIZE-1);
+            int bytesread = read(fd, buff, BUF_SIZE-1);
             if(bytesread <= 0)
                 break;
             buff[bytesread] = '\0';

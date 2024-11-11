@@ -16,11 +16,19 @@ struct FileMetaData{
     string owner;   // username of file owner
     time_t lastModified;
     int currentReaders = 0;
-    pthread_mutex_t mutex;
-    pthread_cond_t cond; 
+    pthread_mutex_t fileMutex;
+    pthread_cond_t fileWait; 
     // add methods here
 
-    FileMetaData() {}
+    FileMetaData() {
+        fileMutex = PTHREAD_MUTEX_INITIALIZER;
+        fileWait = PTHREAD_COND_INITIALIZER;
+    }
+
+    ~FileMetaData() {
+        pthread_mutex_destroy(&fileMutex);
+        pthread_cond_destroy(&fileWait);
+    }
 
     FileMetaData(string filename) {
         this->filename = filename;

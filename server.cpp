@@ -11,14 +11,36 @@ using namespace std;
 #define FILES_METADATA_PATH "./filemetadata.txt"
 #define FILE_DIR_PATH "./files/"
 
+void* processClient(void*);
+
+queue<pair<int,string>> connQueue;
+pthread_mutex_t queueLock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t queueWait = PTHREAD_COND_INITIALIZER;
+
 class Server {
     int sockfd;
     unordered_map<string, FileMetaData> filesMap;
     unordered_map<string, User> users;
     unordered_map<string, User> activeUsers; 
+    // TODO: map ip address with username only
     unordered_map<string, User> clientMap; //mapping of ip address to user
-    queue<int>connQueue; // queue of connection fds
+    pthread_mutex_t sessionLock;
+    pthread_cond_t sessionWait;
 public:
+
+    Server() {
+        sessionLock = PTHREAD_MUTEX_INITIALIZER;
+        sessionWait = PTHREAD_COND_INITIALIZER;
+    }
+
+    ~Server() {
+        pthread_mutex_destroy(&sessionLock);
+        pthread_cond_destroy(&sessionWait);
+        users.clear();
+        activeUsers.clear();
+        clientMap.clear();
+        filesMap.clear();
+    }
 
     int loadFileMetaData() {
 
@@ -92,53 +114,16 @@ public:
             string clientid = inet_ntoa(clientAddr.sin_addr);
             clientid += ":" + to_string(port);
             
-            while(1) {
-                // read input commands here
-                char buff[BUF_SIZE] = {0};
-                if(read(connFd, buff, sizeof(buff)) < 0) {
-                    perror("commmand read: read failed");
-                    break;
-                }
-                if(strlen(buff) == 0)
-                    break;
-                cout<<"Request: "<< buff <<endl;
-                vector<string>command;
-                char* token = strtok(buff, " ");
-                while(token) {
-                    command.push_back(token);
-                    token = strtok(NULL, " ");
-                }
-                if(command[0] == "login") {
-                    User user(command[1], command[2]);
-                    const char* resp = authenticateUser(user, clientid);
-                    write(connFd, resp, strlen(resp));
-                } else if(command[0] == "add") {
-                    if(command.size() != 2) {
-                        write(connFd, "Usage: login <filename.txt>", 27);
-                        continue;
-                    }
-                    const char* resp = addFile(command[1], clientid);
-                    write(connFd, resp, strlen(resp));
-                } else if(command[0] == "listall") {
-                    string resp = listall();
-                    write(connFd, resp.c_str(), resp.length());
-                } else if(command[0] == "quit") {
-                    printUsers();
-                    quit(connFd, clientid);
-                } else if(command[0] == "checkout") {
-                    checkout(command[1], connFd);
-                } else if(command[0] == "commit") {
-                    commit(command[1], connFd);
-                } else {
-                    cout << "Enter a valid command!" << endl;
-                }
-            }
-            cout<<"Connection with client terminated successfully"<<endl;
-            printUsers();
+            pthread_mutex_lock(&queueLock);
+            connQueue.push({connFd, clientid});
+            pthread_cond_signal(&queueWait);
+            pthread_mutex_unlock(&queueLock);
+            
         }
     }
 
     const char* authenticateUser(User user, string clientid) {
+        pthread_mutex_lock(&sessionLock);
         if(users.find(user.username) == users.end()) {
             ofstream file;
             file.open(USER_DATA_PATH, ios_base::app);
@@ -146,12 +131,17 @@ public:
             users[user.username] = user;
         }
         //TODO: add password validation also lol!
-        if(activeUsers.find(user.username) != activeUsers.end())
+        if(activeUsers.find(user.username) != activeUsers.end()) {
+            pthread_mutex_unlock(&sessionLock);
             return "User with given username already logged in!";
-        if(users[user.username].password != user.password)
+        }
+        if(users[user.username].password != user.password) {
+            pthread_mutex_unlock(&sessionLock);
             return "Invalid password!";
+        }
         activeUsers[user.username] = user;
         clientMap[clientid] = user;
+        pthread_mutex_unlock(&sessionLock);
         return "OK";
     }
 
@@ -164,14 +154,20 @@ public:
     }
 
     void checkout(string filename, int connFd) {
+        pthread_mutex_lock(&sessionLock);
         if(filesMap.find(filename) == filesMap.end()) {
             write(connFd, "Given filename does not exists!", 29);
+            pthread_mutex_unlock(&sessionLock);
             return;
         }
         write(connFd, "OK", 2);
         FileMetaData fileMetaData = filesMap[filename];
-        int fd = open(fileMetaData.path.c_str(), O_RDONLY);
+        fileMetaData.currentReaders++;
         string serializedData = fileMetaData.toString();
+        filesMap[filename] = fileMetaData;
+        pthread_mutex_unlock(&sessionLock);
+
+        int fd = open(fileMetaData.path.c_str(), O_RDONLY);
         write(connFd, serializedData.c_str(), serializedData.length());
         char buff[BUF_SIZE] = {0};
         
@@ -188,26 +184,25 @@ public:
     }
 
     void commit(string filename, int connFd) {
+        pthread_mutex_lock(&sessionLock);
         if(filesMap.find(filename) == filesMap.end()) {
             write(connFd, "Given filename does not exists!", 29);
+            pthread_mutex_unlock(&sessionLock);
             return;
         }
         FileMetaData fileMetaData = filesMap[filename];
-        if(fileMetaData.hasWriteLock) {
+        if(fileMetaData.hasWriteLock || fileMetaData.currentReaders > 0) {
             write(connFd, "Write lock already exists on the file!", 38);
+            pthread_mutex_unlock(&sessionLock);
             return;
         }
         write(connFd, "OK", 2);
+
         fileMetaData.hasWriteLock = true;
-        
-        // while(1) {
-        //     int bytesread = read(connFd, buff, BUF_SIZE-1);
-        //     if(bytesread <= 0)
-        //         break;
-        //     buff[bytesread] = '\0';
-        //     file << buff;
-        // }
-        
+        filesMap[filename] = fileMetaData;
+        pthread_mutex_unlock(&sessionLock);
+
+        pthread_mutex_unlock(&fileMetaData.fileMutex);
         char buff[BUF_SIZE] = {0};
         ofstream file(fileMetaData.path);
         bool oAtEnd = false;
@@ -253,10 +248,13 @@ public:
             file << buff;
         }
         file.close();
+        pthread_mutex_unlock(&fileMetaData.fileMutex);
     }
 
     const char* addFile(string filename, string clientid) {
+        pthread_mutex_lock(&sessionLock);
         if(filesMap.find(filename) != filesMap.end()) {
+            pthread_mutex_unlock(&sessionLock);
             return "File with given name already exists!";
         }
         FileMetaData fileMetaData(filename);
@@ -273,6 +271,7 @@ public:
                 << " " << fileMetaData.currentReaders << endl;
         file.close();
         filesMap[filename] = fileMetaData;
+        pthread_mutex_unlock(&sessionLock);
         return "OK";
     }
 
@@ -300,10 +299,12 @@ public:
     }
 
     void quit(int connFd, string clientid) {
+        pthread_mutex_unlock(&sessionLock);
         cout<<"Inside quit" << endl;
         User user = clientMap[clientid];
         clientMap.erase(clientid);
         activeUsers.erase(user.username);
+        pthread_mutex_unlock(&sessionLock);
         close(connFd);
     }
 };
@@ -316,6 +317,8 @@ int main(int argc, char** argv) {
     }
 
     int port = atoi(argv[1]);
+    int threadPoolSize = 4;
+
     sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
@@ -331,7 +334,79 @@ int main(int argc, char** argv) {
     if (server->loadFileMetaData() < 0) {
         cout << "ERROR: server->loadFileMetaData()" << endl;
     }
-    server->printFileMetaData();
+    // server->printFileMetaData();
+
+    vector<pthread_t>workerThreads(threadPoolSize);
+    for(int i = 0; i < threadPoolSize; ++i) {
+        if(pthread_create(&workerThreads[i], NULL, &processClient, server) != 0) {
+            cerr << "Failed to create thread";
+            return -1;
+        }
+    }
+
     server->startServer(port, serverAddr);
     server->startListening();
+}
+
+
+void* processClient(void* arg) {
+    Server* server = (Server*)arg;
+
+    while(1) {
+        
+        pthread_mutex_lock(&queueLock);
+        while(connQueue.empty()) {
+            pthread_cond_wait(&queueWait, &queueLock); // wait till queue is empty
+        }
+        int connFd = connQueue.front().first;
+        string clientid = connQueue.front().second;
+        connQueue.pop();
+        pthread_mutex_unlock(&queueLock);
+        while(1) {
+            // read input commands here
+            char buff[BUF_SIZE] = {0};
+            if(read(connFd, buff, sizeof(buff)) < 0) {
+                cerr << "commmand read: read failed";
+                break;
+            }
+            if(strlen(buff) == 0) {
+                break;
+            }
+            cout<<"Request: "<< buff <<endl;
+            vector<string>command;
+            char* token = strtok(buff, " ");
+            while(token) {
+                command.push_back(token);
+                token = strtok(NULL, " ");
+            }
+            if(command[0] == "login") {
+                User user(command[1], command[2]);
+                const char* resp = server->authenticateUser(user, clientid);
+                write(connFd, resp, strlen(resp));
+            } else if(command[0] == "add") {
+                if(command.size() != 2) {
+                    write(connFd, "Usage: login <filename.txt>", 27);
+                    continue;
+                }
+                const char* resp = server->addFile(command[1], clientid);
+                write(connFd, resp, strlen(resp));
+            } else if(command[0] == "listall") {
+                string resp = server->listall();
+                write(connFd, resp.c_str(), resp.length());
+            } else if(command[0] == "quit") {
+                server->printUsers();
+                break;
+            } else if(command[0] == "checkout") {
+                server->checkout(command[1], connFd);
+            } else if(command[0] == "commit") {
+                server->commit(command[1], connFd);
+            } else {
+                cout << "Enter a valid command!" << endl;
+            }
+        }
+        server->quit(connFd, clientid);
+        server->printUsers();
+    }
+    cout<<"Connection with client terminated successfully"<<endl;
+    return NULL;
 }

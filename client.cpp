@@ -121,8 +121,44 @@ public:
         send(sockfd, data, strlen(data), 0);
     }
 
-    int commit() {
+    int commit(string fileName) {
         // commit feature
+        string command = COMMIT;
+        command += " " + fileName;
+
+        if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
+            cout << "commit: write failed" << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        char resp[BUF_SIZE] = {0};
+        if (read(sockfd, resp, BUF_SIZE) < 0) {
+            cout << "commit: read failed" << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        if(strcmp(resp,"OK") != 0) {
+            cout << resp << endl;
+            return 0;
+        }
+        
+        char buff[BUF_SIZE] = {0};
+        int fd = open((user.filesDir + "/" + fileName).c_str(), O_RDONLY);
+        
+        if (fd < 0) {
+            cerr << "Couldn't open the file " << fileName << endl;
+            return -1;
+        }
+
+        while(1) {
+            int bytesread = read(sockfd, buff, BUF_SIZE-1);
+            if(bytesread <= 0)
+                break;
+            buff[bytesread] = '\0';
+            write(sockfd, buff, bytesread);
+        }
+        write(sockfd, "OK", 2);
+
         return 0;
     }
 
@@ -197,13 +233,13 @@ public:
         string command = CHECKOUT;
         command += " " + fileName;
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
-            cout << "addFile: write failed" << endl;
+            cout << "checkout: write failed" << endl;
             exit(EXIT_FAILURE);
         }
 
         char resp[BUF_SIZE] = {0};
         if (read(sockfd, resp, BUF_SIZE) < 0) {
-            cout << "addFile: read failed" << endl;
+            cout << "checkout: read failed" << endl;
             exit(EXIT_FAILURE);
         }
         if(strcmp(resp,"OK") == 0) {
@@ -328,6 +364,17 @@ public:
                         continue;
                     }
                     checkout(cmds[1]);
+                } else if (cmds[0].compare(COMMIT) == 0) {
+                    if (cmds.size() < 2) {
+                        cout << "Usage: commit <file-name.txt>" << endl;
+                        continue;
+                    }
+                    
+                    if (fileNameIsNotValid(cmds[1])) {
+                        cout << "commit: Enter a valid file name ending with '.txt'." << endl;
+                        continue;
+                    }
+                    commit(cmds[1]);
                 } else {
                     cout << "Enter a valid command!" << endl;
                 }

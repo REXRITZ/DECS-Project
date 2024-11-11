@@ -121,11 +121,6 @@ public:
         send(sockfd, data, strlen(data), 0);
     }
 
-    int checkout() {
-        // checkout feature
-        return 0;
-    }
-
     int commit() {
         // commit feature
         return 0;

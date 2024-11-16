@@ -130,7 +130,6 @@ public:
             cout << "commit: write failed" << endl;
             exit(EXIT_FAILURE);
         }
-        // cout << "sent command: "<< command << endl;
 
         char resp[BUF_SIZE] = {0};
         if (read(sockfd, resp, BUF_SIZE) < 0) {
@@ -144,7 +143,6 @@ public:
         }
         
         char buff[BUF_SIZE] = {0};
-        // cout << "path of file to be written: " << user.filesDir + "/" + fileName << endl;
         int fd = open((user.filesDir + "/" + fileName).c_str(), O_RDONLY);
         
         if (fd < 0) {
@@ -218,9 +216,8 @@ public:
 
     void writeFileMetaData() {
         ofstream file;
-        cout << "checking dirs\n";
         checkDirs();
-        cout << "checking dirs done\n";
+
         string fileMetaDataPath = "./" + user.username + "/filemetadata.txt";
         file.open(fileMetaDataPath);
         for (auto fileMD : filesMap) {
@@ -228,7 +225,6 @@ public:
                  << " " << fileMD.second.hasWriteLock << " " << fileMD.second.owner << " " << fileMD.second.lastModified 
                  << " " << fileMD.second.currentReaders << endl;
         }
-        cout << "writeFileMetadata done\n";
     }
 
     int checkout(string fileName) {
@@ -248,19 +244,15 @@ public:
             FileMetaData fileMetaData;
             char fileMetaDataString[BUF_SIZE] = {0};
             cout << fileName << " is present. Starting download." << endl;
-            // Read file metadata.
-            cout << "reading filemetadata\n";
+            // Read file metadata
             read(sockfd, fileMetaDataString, BUF_SIZE-1);
             fileMetaData.fromString(fileMetaDataString);
-            cout << "reading filemetadata done\n";
-            cout << "fn: " << fileMetaData.filename << endl;
             fileMetaData.path = user.filesDir + "/" + fileName;
             filesMap[fileName] = fileMetaData;
 
             // Update filemetadata.txt
             writeFileMetaData();
 
-            cout << "starting reading.\n";
             // Read the file.
             ofstream file;
             file.open(user.filesDir + "/" + fileName);
@@ -273,8 +265,6 @@ public:
                     break;
                 }
 
-                // cout << buff << '\n' << readSz << '\n';
-                // cout << "readSz: " << readSz << "; readSz - 2: " << buff[readSz - 2] << "; readSz - 1: " << buff[readSz - 1] << "oAtEnd: " << oAtEnd << '\n';
                 if (readSz == 0) {
                     break;
                 }

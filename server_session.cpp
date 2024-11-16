@@ -149,7 +149,7 @@ void ServerSession:: commit(string filename, int connFd) {
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
 
-    pthread_mutex_unlock(&fileMetaData.fileMutex);
+    pthread_mutex_lock(&fileMetaData.fileMutex);
     char buff[BUF_SIZE] = {0};
     ofstream file(fileMetaData.path);
     bool oAtEnd = false;
@@ -251,7 +251,7 @@ void ServerSession::printFileMetaData() {
 }
 
 void ServerSession::quit(int connFd, string clientid) {
-    pthread_mutex_unlock(&sessionLock);
+    pthread_mutex_lock(&sessionLock);
     cout<<"Inside quit" << endl;
     User user = clientMap[clientid];
     clientMap.erase(clientid);

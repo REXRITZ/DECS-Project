@@ -15,7 +15,7 @@ using namespace std;
 #define LISTALL "listall"
 #define CHECKOUT "checkout"
 #define COMMIT "commit"
-#define ADD "add"
+#define CREATE "create"
 #define DELETE "delete"
 
 typedef struct {
@@ -177,22 +177,22 @@ public:
         return 0;
     }
 
-    int addFile(string filepath) {
-        // add new file to server
-        string command = ADD;
+    int createFile(string filepath) {
+        // create new file to server
+        string command = CREATE;
         command += " " + filepath;
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
-            cout << "addFile: write failed" << endl;
+            cout << "createFile: write failed" << endl;
             exit(EXIT_FAILURE);
         }
 
         char resp[BUF_SIZE] = {0};
         if (read(sockfd, resp, BUF_SIZE) < 0) {
-            cout << "addFile: read failed" << endl;
+            cout << "createFile: read failed" << endl;
             exit(EXIT_FAILURE);
         }
         if(strcmp(resp,"OK") == 0)
-            cout << filepath << " added successfully." << endl;
+            cout << filepath << " createed successfully." << endl;
         else
             cout<<resp<<endl;
         return 0;
@@ -332,17 +332,17 @@ public:
                     // TODO: Inform server.
                     quit();
                     break;
-                } else if (cmds[0].compare(ADD) == 0) {
+                } else if (cmds[0].compare(CREATE) == 0) {
                     if (cmds.size() < 2) {
-                        cout << "Usage: add <file-name.txt>" << endl;
+                        cout << "Usage: create <file-name.txt>" << endl;
                         continue;
                     }
 
                     if (fileNameIsNotValid(cmds[1])) {
-                        cout << "add: Enter a valid file name ending with '.txt'." << endl;
+                        cout << "create: Enter a valid file name ending with '.txt'." << endl;
                         continue;
                     }
-                    addFile(cmds[1]);
+                    createFile(cmds[1]);
                 } else if (cmds[0].compare(LISTALL) == 0) {
                     listAll();
                 } else if (cmds[0].compare(CHECKOUT) == 0) {
@@ -418,7 +418,7 @@ int main(int argc, char **argv) {
     // Done -- listall - to list all files present on server with current readers/writers count.
     // Done -- checkout - download file from server and store on client side.
     // Done -- commit - update file on server -> syncronized
-    // Done -- add - add a new file to the server
+    // Done -- create - create a new file to the server
     // delete - delete a file on the server
     
     // Questions so far:

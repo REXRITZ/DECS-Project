@@ -245,13 +245,17 @@ public:
             char fileMetaDataString[BUF_SIZE] = {0};
             cout << fileName << " is present. Starting download." << endl;
             // Read file metadata
+            cout << "before read filemetadata" << endl;
             read(sockfd, fileMetaDataString, BUF_SIZE-1);
+            cout << "after read filemetadata" << endl;
             fileMetaData.fromString(fileMetaDataString);
             fileMetaData.path = user.filesDir + "/" + fileName;
             filesMap[fileName] = fileMetaData;
 
             // Update filemetadata.txt
+            cout << "before write filemetadata" << endl;
             writeFileMetaData();
+            cout << "after write filemetadata" << endl;
 
             // Read the file.
             ofstream file;
@@ -269,7 +273,7 @@ public:
                     break;
                 }
                 buff[readSz] = '\0';
-
+                cout << "readSz: " << readSz << ", buff: " << buff << endl;
                 if (readSz >= 2 && buff[readSz - 2] == 'O' && buff[readSz - 1] == 'K') {
                     buff[readSz - 2] = buff[readSz - 1] = '\0';
                     if (oAtEnd) {

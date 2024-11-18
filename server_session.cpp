@@ -125,7 +125,7 @@ void ServerSession:: checkout(string filename, int connFd, string username) {
     }
     
     FileMetaData fileMetaData = filesMap[filename];
-    // check if user has already checked out file
+    // check if someone has already checked out file
     if(fileMetaData.hasWriteLock) {
         write(connFd, "Write lock already exists on the file!", 38);
         pthread_mutex_unlock(&sessionLock);
@@ -133,16 +133,14 @@ void ServerSession:: checkout(string filename, int connFd, string username) {
     }
     else
         write(connFd, "OK\n", 3);
+    
     User user = activeUsers[username];
     if(!user.checkedoutFiles.count(filename))
         fileMetaData.currentReaders++;
-    string serializedData = fileMetaData.toString() + '\n';
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
 
     int fd = open(fileMetaData.path.c_str(), O_RDONLY);
-    // const char* data = serializedData.c_str();
-    // write(connFd, data, strlen(data)+1);
     char buff[BUF_SIZE] = {0};
     
     while(1) {
@@ -153,7 +151,6 @@ void ServerSession:: checkout(string filename, int connFd, string username) {
         write(connFd, buff, bytesread);
         cout<< "wrote:" << buff << endl;
     }
-    // shutdown(sockfd,SHUT_RDWR);
     cout << "done\n";
 }
 

@@ -259,30 +259,15 @@ public:
             for (int i = 0; i < readSz; ++i) {
                 respStr += resp[i];
             }
-
             // cout << "readSz: " << readSz << ", resp: " << resp << endl;
         }
-
         // cout << "respStr: " << respStr << endl;
         stringstream respSS(respStr);
 
         string buf;
         getline(respSS, buf);
         if (buf == "OK") {
-            FileMetaData fileMetaData;
-            string fileMetaDataString;
-            getline(respSS, fileMetaDataString);
-            cout << fileName << " is present. Starting download." << endl;
-            // cout << "fileMetaDataString: " << fileMetaDataString << '\n';
-            // Read file metadata
-            fileMetaData.fromString(fileMetaDataString);
-            fileMetaData.path = user.filesDir + "/" + fileName;
-            filesMap[fileName] = fileMetaData;
-
-            // Update filemetadata.txt
-            writeFileMetaData();
             ofstream file;
-            respSS.ignore();
             file.open(user.filesDir + "/" + fileName);
             file << respSS.rdbuf();
         } else {
@@ -293,10 +278,7 @@ public:
     }
 
     void displayFileMetaData() {
-        for(auto file : r r 
-a a 
-p p 
-rr rr ) {
+        for(auto file : filesMap) {
             cout<<file.second.filename<<" "<<file.second.currentReaders<<endl;
         }
     }

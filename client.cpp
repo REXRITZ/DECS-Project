@@ -321,33 +321,33 @@ public:
                     close(sockfd);
                 } else if (cmds[0].compare(CHECKOUT) == 0) {
                     if (cmds.size() < 2) {
-                        cout << "Usage: checkout <file-name.txt>" << endl;
+                        cout << "Usage: checkout <file-name>" << endl;
                         continue;
                     }
                     
-                    if (fileNameIsNotValid(cmds[1])) {
-                        cout << "checkout: Enter a valid file name ending with '.txt'." << endl;
-                        continue;
-                    }
+                    // if (fileNameIsNotValid(cmds[1])) {
+                    //     cout << "checkout: Enter a valid file name ending with '.txt'." << endl;
+                    //     continue;
+                    // }
                     startServer();
                     checkout(cmds[1]);
                     close(sockfd);
                 } else if (cmds[0].compare(COMMIT) == 0) {
                     if (cmds.size() < 2) {
-                        cout << "Usage: commit <file-name.txt>" << endl;
+                        cout << "Usage: commit <file-name>" << endl;
                         continue;
                     }
                     
-                    if (fileNameIsNotValid(cmds[1])) {
-                        cout << "commit: Enter a valid file name ending with '.txt'." << endl;
-                        continue;
-                    }
+                    // if (fileNameIsNotValid(cmds[1])) {
+                    //     cout << "commit: Enter a valid file name ending with '.txt'." << endl;
+                    //     continue;
+                    // }
                     startServer();
                     commit(cmds[1], user.filesDir + "/" + cmds[1], false);
                     close(sockfd);
                 } else if (cmds[0].compare(ADD) == 0) {
                     if (cmds.size() < 2) {
-                        cout << "Usage: add <file-path.txt>" << endl;
+                        cout << "Usage: add <file-path>" << endl;
                         continue;
                     }
                     

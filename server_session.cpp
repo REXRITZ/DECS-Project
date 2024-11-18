@@ -232,7 +232,7 @@ void ServerSession:: commit(string filename, int connFd, string username) {
     pthread_mutex_unlock(&sessionLock);
 }
 
-const char* ServerSession::createFile(string filename, string clientid) {
+const char* ServerSession::createFile(string filename, string username) {
     pthread_mutex_lock(&sessionLock);
     if(filesMap.find(filename) != filesMap.end()) {
         pthread_mutex_unlock(&sessionLock);
@@ -241,16 +241,9 @@ const char* ServerSession::createFile(string filename, string clientid) {
     FileMetaData fileMetaData(filename);
     fileMetaData.path = FILE_DIR_PATH + filename;
     fileMetaData.lastModified = time(nullptr); // unix epoch timestamp
-    // fileMetaData.owner = clientMap[clientid].username;
-    // write to persist file meta data info
     ofstream file1(fileMetaData.path);
     file1.close();
     ofstream file;
-    // file.open(FILES_METADATA_PATH, ios_base::app);
-    // file << fileMetaData.filename << " " << fileMetaData.path << " " << fileMetaData.isModified 
-    //         << " " << fileMetaData.hasWriteLock << " " << fileMetaData.owner << " " << fileMetaData.lastModified 
-    //         << " " << fileMetaData.currentReaders << endl;
-    // file.close();
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
     return "OK";
@@ -279,11 +272,10 @@ void ServerSession::printFileMetaData() {
     }
 }
 
-void ServerSession::quit(int connFd, string clientid) {
+void ServerSession::quit(int connFd, string username) {
     pthread_mutex_lock(&sessionLock);
     cout<<"Inside quit" << endl;
-    //TODO remove clientmap and use username passed as argument later
-    User user = clientMap[clientid];
+    User user = activeUsers[username];
     for(string filename : user.checkedoutFiles) {
         FileMetaData metadata = filesMap[filename];
         metadata.currentReaders--;
@@ -293,7 +285,6 @@ void ServerSession::quit(int connFd, string clientid) {
         }
         filesMap[filename] = metadata;
     }
-    clientMap.erase(clientid);
     activeUsers.erase(user.username);
     pthread_mutex_unlock(&sessionLock);
     close(connFd);

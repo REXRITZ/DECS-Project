@@ -35,6 +35,7 @@ struct FileMetaData{
     }
 
     FileMetaData(string filename) {
+        FileMetaData();
         this->filename = filename;
     }
 

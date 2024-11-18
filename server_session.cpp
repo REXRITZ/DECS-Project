@@ -204,6 +204,8 @@ void ServerSession::addFile(string filename, int connFd, string username) {
     fileMetaData.lastModified = time(nullptr); // unix epoch timestamp
     ofstream file1(fileMetaData.path);
     file1.close();
+    fileMetaData.hasWriteLock = false;
+    cout << "filename: " << filename << endl;
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
     commit(filename, connFd, username);

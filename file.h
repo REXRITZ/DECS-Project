@@ -12,11 +12,11 @@ struct FileMetaData{
     // int id;
     string filename; // filename can also be id??
     string path;
-    bool hasWriteLock;
+    bool hasWriteLock = false;
     string owner;   // username of file owner
     string whoHasWriteLock; // who has write lock ?
     time_t lastModified;
-    int currentReaders;
+    int currentReaders = 0;
     pthread_mutex_t fileMutex;
     pthread_cond_t fileWait; 
     // add methods here
@@ -25,8 +25,8 @@ struct FileMetaData{
         fileMutex = PTHREAD_MUTEX_INITIALIZER;
         fileWait = PTHREAD_COND_INITIALIZER;
         whoHasWriteLock = "";
-        hasWriteLock = false;
-        currentReaders = 0;
+        // hasWriteLock = false;
+        // currentReaders = 0;
     }
 
     ~FileMetaData() {

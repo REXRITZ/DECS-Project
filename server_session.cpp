@@ -147,7 +147,7 @@ void ServerSession:: commit(string filename, int connFd, string username) {
     FileMetaData fileMetaData = filesMap[filename];
     if(fileMetaData.hasWriteLock) {
         if(!(fileMetaData.currentReaders == 1 && username == fileMetaData.whoHasWriteLock)) {
-            write(connFd, "Write lock already exists on the file! Try running checkout after some time.", 38);
+            write(connFd, "Write lock already exists on the file! Try running checkout after some time.", 76);
             pthread_mutex_unlock(&sessionLock);
             return;
         }
@@ -178,8 +178,6 @@ void ServerSession:: commit(string filename, int connFd, string username) {
         }
         // cout << "readSz: " << readSz << ", resp: " << resp << endl;
     }
-    // cout << "respStr: " << respStr << endl;
-
     ofstream file;
     file.open(fileMetaData.path);
     file << respStr;
@@ -199,13 +197,11 @@ void ServerSession::addFile(string filename, int connFd, string username) {
         pthread_mutex_unlock(&sessionLock);
         return;
     }
-    FileMetaData fileMetaData(filename);
+    FileMetaData fileMetaData;
+    fileMetaData.filename = filename;
     fileMetaData.path = FILE_DIR_PATH + filename;
     fileMetaData.lastModified = time(nullptr); // unix epoch timestamp
-    ofstream file1(fileMetaData.path);
-    file1.close();
-    fileMetaData.hasWriteLock = false;
-    cout << "filename: " << filename << endl;
+    
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
     commit(filename, connFd, username);

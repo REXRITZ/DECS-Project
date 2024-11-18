@@ -186,18 +186,29 @@ public:
         return 0;
     }
 
-    int deleteFile(string filename) {
-        FileMetaData file;
-        if(filesMap.find(filename) == filesMap.end()) {
-            cout<<"Invalid filename given"<<endl;
-            return -1;
+    int deleteFile(string fileName) {
+        string command = DELETE;
+        command += " " + fileName + " " + user.username;
+        if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
+            cout << "delete: write failed" << endl;
+            exit(EXIT_FAILURE);
         }
-        file = filesMap[filename];
-        if(user.username == file.owner) {
-            cout<<"Permission denied. You are not the file owner"<<endl;
-            return -1;
+
+        char resp[BUF_SIZE] = {0};
+        if (read(sockfd, resp, BUF_SIZE) < 0) {
+            cout << "delete: read failed" << endl;
+            exit(EXIT_FAILURE);
         }
+
+        if(strcmp(resp,"OK") != 0) {
+            cout << resp << endl;
+            return 0;
+        }
+
         // delete file from server and locally also
+        if(remove((user.filesDir + "/" + fileName).c_str()) != 0)
+            write(sockfd, "Err: Unable to delete file", 26);
+
         return 0;
     }
 
@@ -357,6 +368,15 @@ public:
                     // }
                     startServer();
                     commit(getFileNameFromPath(cmds[1]), cmds[1], true);
+                    close(sockfd);
+                } else if (cmds[0].compare(DELETE) == 0) {
+                    if (cmds.size() < 2) {
+                        cout << "Usage: delete <file-path>" << endl;
+                        continue;
+                    }
+
+                    startServer();
+                    deleteFile(cmds[1]);
                     close(sockfd);
                 } else {
                     cout << "Enter a valid command!" << endl;

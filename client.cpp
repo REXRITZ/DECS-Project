@@ -132,7 +132,7 @@ public:
     int commit(string fileName) {
         // commit feature
         string command = COMMIT;
-        command += " " + fileName;
+        command += " " + fileName + " " + user.username;
 
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
             cout << "commit: write failed" << endl;
@@ -185,10 +185,10 @@ public:
         return 0;
     }
 
-    int createFile(string filepath) {
+    int createFile(string fileName) {
         // create new file to server
         string command = CREATE;
-        command += " " + filepath;
+        command += " " + fileName + " " + user.username;
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
             cout << "createFile: write failed" << endl;
             exit(EXIT_FAILURE);
@@ -200,7 +200,7 @@ public:
             exit(EXIT_FAILURE);
         }
         if(strcmp(resp,"OK") == 0)
-            cout << filepath << " createed successfully." << endl;
+            cout << fileName << " created successfully." << endl;
         else
             cout<<resp<<endl;
         return 0;
@@ -237,7 +237,7 @@ public:
 
     int checkout(string fileName) {
         string command = CHECKOUT;
-        command += " " + fileName;
+        command += " " + fileName + " " + user.username;
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
             cout << "checkout: write failed" << endl;
             exit(EXIT_FAILURE);
@@ -352,7 +352,9 @@ public:
     }
 
     void quit() {
-        write(sockfd, QUIT, strlen(QUIT));
+        string command = QUIT;
+        command += " " + user.username;
+        write(sockfd, command.c_str(), command.length() + 1);
         shutdown(sockfd, SHUT_WR);
         close(sockfd);
     }

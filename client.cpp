@@ -150,10 +150,10 @@ public:
             cout << resp << endl;
             return 0;
         }
-        
+                
         char buff[BUF_SIZE] = {0};
         int fd = open((user.filesDir + "/" + fileName).c_str(), O_RDONLY);
-        
+
         if (fd < 0) {
             cerr << "Couldn't open the file " << fileName << endl;
             return -1;
@@ -164,9 +164,11 @@ public:
             if(bytesread <= 0)
                 break;
             buff[bytesread] = '\0';
-            write(sockfd, buff, bytesread);
+            if(write(sockfd, buff, bytesread) < 0) {
+                cerr<<"commit: write failed" << endl;
+                break;
+            }
         }
-        write(sockfd, "OK", 2);
 
         return 0;
     }

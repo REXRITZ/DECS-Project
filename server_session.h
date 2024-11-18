@@ -21,8 +21,6 @@ class ServerSession {
     unordered_map<string, FileMetaData> filesMap;
     unordered_map<string, User> users;
     unordered_map<string, User> activeUsers; 
-    // TODO: map ip address with username only
-    unordered_map<string, User> clientMap; //mapping of ip address to user
     pthread_mutex_t sessionLock;
     pthread_cond_t sessionWait;
 

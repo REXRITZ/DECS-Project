@@ -12,7 +12,6 @@ ServerSession:: ~ServerSession() {
     pthread_cond_destroy(&sessionWait);
     users.clear();
     activeUsers.clear();
-    clientMap.clear();
     filesMap.clear();
 }
 
@@ -148,13 +147,12 @@ void ServerSession:: commit(string filename, int connFd, string username) {
         return;
     }
     FileMetaData fileMetaData = filesMap[filename];
-    if(fileMetaData.hasWriteLock || fileMetaData.currentReaders > 0) {
-        if(fileMetaData.currentReaders > 0)
-            write(connFd, "Multiple readers are currently reading. Wait for them to finish!", 64);
-        else
-            write(connFd, "Write lock already exists on the file!", 38);
-        pthread_mutex_unlock(&sessionLock);
-        return;
+    if(fileMetaData.hasWriteLock) {
+        if(!(fileMetaData.currentReaders == 1 && username == fileMetaData.whoHasWriteLock)) {
+            write(connFd, "Write lock already exists on the file! Try running checkout after some time.", 38);
+            pthread_mutex_unlock(&sessionLock);
+            return;
+        }
     }
     write(connFd, "OK", 2);
 
@@ -164,51 +162,29 @@ void ServerSession:: commit(string filename, int connFd, string username) {
     pthread_mutex_unlock(&sessionLock);
 
     pthread_mutex_lock(&fileMetaData.fileMutex);
-    char buff[BUF_SIZE] = {0};
-    ofstream file(fileMetaData.path);
-    bool oAtEnd = false;
+    string respStr = "";
+    char resp[BUF_SIZE] = {0};
     while (true) {
         int readSz = 0;
-        if ((readSz = read(connFd, buff, BUF_SIZE-1)) < 0) {
+        if ((readSz = read(connFd, resp, BUF_SIZE-1)) < 0) {
             perror("commit: read failed");
             break;
         }
-
-        // cout << buff << '\n' << readSz << '\n';
-        // cout << "readSz: " << readSz << "; readSz - 2: " << buff[readSz - 2] << "; readSz - 1: " << buff[readSz - 1] << "oAtEnd: " << oAtEnd << '\n';
+        // resp[readSz] = '\0';
         if (readSz == 0) {
             break;
         }
-        buff[readSz] = '\0';
 
-        if (readSz >= 2 && buff[readSz - 2] == 'O' && buff[readSz - 1] == 'K') {
-            buff[readSz - 2] = buff[readSz - 1] = '\0';
-            if (oAtEnd) {
-                file << "O";
-            }
-            file << buff;
-            break;
+        for (int i = 0; i < readSz; ++i) {
+            respStr += resp[i];
         }
-
-        if (readSz == BUF_SIZE - 1 && buff[readSz - 1] == 'O') {
-            buff[readSz - 1] = '\0';
-            file << buff;
-            oAtEnd = true;
-            continue;
-        }
-
-        if (oAtEnd) {
-            if (readSz == 1 && buff[readSz - 1] == 'K') {
-                break;
-            } else {
-                oAtEnd = false;
-                file << "O";
-            }
-        }
-
-        file << buff;
+        // cout << "readSz: " << readSz << ", resp: " << resp << endl;
     }
-    file.close();
+    // cout << "respStr: " << respStr << endl;
+
+    ofstream file;
+    file.open(fileMetaData.path);
+    file << respStr;
     pthread_mutex_unlock(&fileMetaData.fileMutex);
 
     pthread_mutex_lock(&sessionLock);

@@ -93,49 +93,46 @@ void* processClient(void* arg) {
         string clientid = connQueue.front().second;
         connQueue.pop();
         pthread_mutex_unlock(&queueLock);
-        while(1) {
-            // read input commands here
-            char buff[BUF_SIZE] = {0};
-            if(read(connFd, buff, sizeof(buff)) < 0) {
-                cerr << "commmand read: read failed";
-                break;
-            }
-            if(strlen(buff) == 0) {
-                break;
-            }
-            cout<<"Request: "<< buff <<endl;
-            vector<string>command;
-            char* token = strtok(buff, " ");
-            while(token) {
-                command.push_back(token);
-                token = strtok(NULL, " ");
-            }
-            if(command[0] == "login") {
-                User user(command[1], command[2]);
-                const char* resp = session->authenticateUser(user, clientid);
-                write(connFd, resp, strlen(resp));
-            } else if(command[0] == "create") {
-                if(command.size() != 2) {
-                    write(connFd, "Usage: login <filename.txt>", 27);
-                    continue;
-                }
-                const char* resp = session->createFile(command[1], clientid);
-                write(connFd, resp, strlen(resp));
-            } else if(command[0] == "listall") {
-                string resp = session->listall();
-                write(connFd, resp.c_str(), resp.length());
-            } else if(command[0] == "quit") {
-                session->printUsers();
-                break;
-            } else if(command[0] == "checkout") {
-                session->checkout(command[1], connFd);
-            } else if(command[0] == "commit") {
-                session->commit(command[1], connFd);
-            } else {
-                cout << "Enter a valid command!" << endl;
-            }
+        // read input commands here
+        char buff[BUF_SIZE] = {0};
+        if(read(connFd, buff, sizeof(buff)) < 0) {
+            cerr << "commmand read: read failed";
+            break;
         }
-        session->quit(connFd, clientid);
+        if(strlen(buff) == 0) {
+            break;
+        }
+        cout<<"Request: "<< buff <<endl;
+        vector<string>command;
+        char* token = strtok(buff, " ");
+        while(token) {
+            command.push_back(token);
+            token = strtok(NULL, " ");
+        }
+        if(command[0] == "login") {
+            User user(command[1], command[2]);
+            const char* resp = session->authenticateUser(user, clientid);
+            write(connFd, resp, strlen(resp));
+        } else if(command[0] == "create") {
+            if(command.size() != 2) {
+                write(connFd, "Usage: login <filename.txt>", 27);
+                continue;
+            }
+            const char* resp = session->createFile(command[1], clientid);
+            write(connFd, resp, strlen(resp));
+        } else if(command[0] == "listall") {
+            string resp = session->listall();
+            write(connFd, resp.c_str(), resp.length());
+        } else if(command[0] == "quit") {
+            session->quit(connFd, clientid);
+        } else if(command[0] == "checkout") {
+            session->checkout(command[1], connFd, "rit");
+        } else if(command[0] == "commit") {
+            session->commit(command[1], connFd, "rit");
+        } else {
+            cout << "Enter a valid command!" << endl;
+        }
+        close(connFd);
     }
     cout<<"Connection with client terminated successfully"<<endl;
     return NULL;

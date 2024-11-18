@@ -100,14 +100,14 @@ const char* ServerSession::authenticateUser(User user, string clientid) {
     return "OK";
 }
 
-void ServerSession:: checkout(string filename, int connFd) {
+void ServerSession:: checkout(string filename, int connFd, string username) {
     pthread_mutex_lock(&sessionLock);
     if(filesMap.find(filename) == filesMap.end()) {
         write(connFd, "Given filename does not exists!", 29);
         pthread_mutex_unlock(&sessionLock);
         return;
     }
-    write(connFd, "OK", 2);
+    write(connFd, "OK", 3);
     FileMetaData fileMetaData = filesMap[filename];
     fileMetaData.currentReaders++;
     string serializedData = fileMetaData.toString();
@@ -115,7 +115,8 @@ void ServerSession:: checkout(string filename, int connFd) {
     pthread_mutex_unlock(&sessionLock);
 
     int fd = open(fileMetaData.path.c_str(), O_RDONLY);
-    write(connFd, serializedData.c_str(), serializedData.length());
+    const char* data = serializedData.c_str();
+    write(connFd, data, strlen(data)+1);
     char buff[BUF_SIZE] = {0};
     
     while(1) {
@@ -124,13 +125,13 @@ void ServerSession:: checkout(string filename, int connFd) {
             break;
         buff[bytesread] = '\0';
         write(connFd, buff, bytesread);
+        cout<< "wrote:" << buff << endl;
     }
-    write(connFd, "OK", 2);
-
+    // shutdown(sockfd,SHUT_RDWR);
     cout << "done\n";
 }
 
-void ServerSession:: commit(string filename, int connFd) {
+void ServerSession:: commit(string filename, int connFd, string username) {
     pthread_mutex_lock(&sessionLock);
     if(filesMap.find(filename) == filesMap.end()) {
         write(connFd, "Given filename does not exists!", 29);
@@ -138,7 +139,7 @@ void ServerSession:: commit(string filename, int connFd) {
         return;
     }
     FileMetaData fileMetaData = filesMap[filename];
-    if(fileMetaData.hasWriteLock || fileMetaData.currentReaders > 0) {
+    if(fileMetaData.hasWriteLock) {
         write(connFd, "Write lock already exists on the file!", 38);
         pthread_mutex_unlock(&sessionLock);
         return;

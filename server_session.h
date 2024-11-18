@@ -33,8 +33,8 @@ class ServerSession {
         int loadUserMetaData();
         int startServer(int, struct sockaddr_in);
         const char* authenticateUser(User, string);
-        void checkout(string, int);
-        void commit(string, int);
+        void checkout(string, int, string);
+        void commit(string, int, string);
         const char* createFile(string, string);
         void quit(int, string);
         string listall();

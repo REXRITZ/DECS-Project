@@ -6,7 +6,7 @@
 #include "user.h"
 using namespace std;
 
-#define IP_SIZE 4
+#define IP_SIZE 16
 #define FILES_METADATA_PATH "./filemetadata.txt"
 #define BUF_SIZE 1024
 
@@ -37,6 +37,11 @@ public:
     Client() {
         sockfd = -1;
         memset(&serverAddr, 0, sizeof(sockaddr_in));
+    }
+
+    Client(int port, char* ip) {
+        this->port = port;
+        strcpy(this->ip, ip);
     }
 
     void checkDir(string dirPath) {
@@ -74,15 +79,15 @@ public:
         return 0;
     }
 
-    int startServer(int port, char* ip) {
+    int startServer() {
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if(sockfd < 0) {
             perror("socket creation failed\n");
             return -1;
         }
+        memset(&serverAddr, 0, sizeof(sockaddr_in));
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = htons(port);
-        cout<<ip;
         if(inet_pton(AF_INET, ip, &serverAddr.sin_addr) <= 0) {
             cout<<"Invalid address/ Address not supported"<<endl;
             return -1;
@@ -92,20 +97,23 @@ public:
             perror("Connection Failed\n");
             return -1;
         }
+        if(user.username.length() != 0)
+            return 0;
         while(1) {
             login();
             char resp[BUF_SIZE] = {0};
             read(sockfd, resp, BUF_SIZE);
-            if(strcmp(resp,"OK") == 0)
+            if(strcmp(resp,"OK") == 0) {
+                user.metadataPath = "./" + user.username + "/filemetadata.txt";
+                user.filesDir = "./" + user.username + "/files";
+                cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
+                loadFileMetaData();
+                cout<<"Connected to server successfully."<<endl;
+                close(sockfd);
                 break;
+            }
             cout<<resp<<endl;
         }
-
-        user.metadataPath = "./" + user.username + "/filemetadata.txt";
-        user.filesDir = "./" + user.username + "/files";
-        cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
-        loadFileMetaData();
-        cout<<"Connected to server successfully."<<endl;
         return 0;
     }
 
@@ -270,34 +278,35 @@ public:
                 }
 
                 if (readSz == 0) {
+                    cout <<"readSz:" << readSz <<endl;
                     break;
                 }
                 buff[readSz] = '\0';
                 cout << "readSz: " << readSz << ", buff: " << buff << endl;
-                if (readSz >= 2 && buff[readSz - 2] == 'O' && buff[readSz - 1] == 'K') {
-                    buff[readSz - 2] = buff[readSz - 1] = '\0';
-                    if (oAtEnd) {
-                        file << "O";
-                    }
-                    file << buff;
-                    break;
-                }
+                // if (readSz >= 2 && buff[readSz - 2] == 'O' && buff[readSz - 1] == 'K') {
+                //     buff[readSz - 2] = buff[readSz - 1] = '\0';
+                //     if (oAtEnd) {
+                //         file << "O";
+                //     }
+                //     file << buff;
+                //     break;
+                // }
 
-                if (readSz == BUF_SIZE - 1 && buff[readSz - 1] == 'O') {
-                    buff[readSz - 1] = '\0';
-                    file << buff;
-                    oAtEnd = true;
-                    continue;
-                }
+                // if (readSz == BUF_SIZE - 1 && buff[readSz - 1] == 'O') {
+                //     buff[readSz - 1] = '\0';
+                //     file << buff;
+                //     oAtEnd = true;
+                //     continue;
+                // }
 
-                if (oAtEnd) {
-                    if (readSz == 1 && buff[readSz - 1] == 'K') {
-                        break;
-                    } else {
-                        oAtEnd = false;
-                        file << "O";
-                    }
-                }
+                // if (oAtEnd) {
+                //     if (readSz == 1 && buff[readSz - 1] == 'K') {
+                //         break;
+                //     } else {
+                //         oAtEnd = false;
+                //         file << "O";
+                //     }
+                // }
 
                 file << buff;
             }
@@ -348,7 +357,9 @@ public:
                     }
                     createFile(cmds[1]);
                 } else if (cmds[0].compare(LISTALL) == 0) {
+                    startServer();
                     listAll();
+                    close(sockfd);
                 } else if (cmds[0].compare(CHECKOUT) == 0) {
                     if (cmds.size() < 2) {
                         cout << "Usage: checkout <file-name.txt>" << endl;
@@ -359,7 +370,9 @@ public:
                         cout << "checkout: Enter a valid file name ending with '.txt'." << endl;
                         continue;
                     }
+                    startServer();
                     checkout(cmds[1]);
+                    close(sockfd);
                 } else if (cmds[0].compare(COMMIT) == 0) {
                     if (cmds.size() < 2) {
                         cout << "Usage: commit <file-name.txt>" << endl;
@@ -410,9 +423,9 @@ int main(int argc, char **argv) {
     int port = atoi(argv[2]);
     char* ip = argv[1];
 
-    client = new Client();
+    client = new Client(port, ip);
 
-    if (client->startServer(port, ip) < 0) {
+    if (client->startServer() < 0) {
         return 1;
     }
 

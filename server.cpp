@@ -43,9 +43,9 @@ int main(int argc, char** argv) {
     // session->printUsers();
     
     if (session->loadFileMetaData() < 0) {
-        cout << "ERROR: server->loadFileMetaData()" << endl;
+        return 1;
     }
-    // session->printFileMetaData();
+    session->printFileMetaData();
 
     vector<pthread_t>workerThreads(threadPoolSize);
     for(int i = 0; i < threadPoolSize; ++i) {
@@ -125,6 +125,7 @@ void* processClient(void* arg) {
             write(connFd, resp.c_str(), resp.length());
         } else if(command[0] == "quit") {
             session->quit(connFd, clientid);
+            continue;
         } else if(command[0] == "checkout") {
             session->checkout(command[1], connFd, "rit");
         } else if(command[0] == "commit") {

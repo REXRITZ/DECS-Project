@@ -293,7 +293,10 @@ public:
     }
 
     void displayFileMetaData() {
-        for(auto file : filesMap) {
+        for(auto file : r r 
+a a 
+p p 
+rr rr ) {
             cout<<file.second.filename<<" "<<file.second.currentReaders<<endl;
         }
     }

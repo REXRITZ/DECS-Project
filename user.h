@@ -5,7 +5,7 @@ typedef struct User User;
 struct User{
     string username;
     string password;
-    unordered_map<string, FileMetaData> files;
+    unordered_set<string> checkedoutFiles;
     string filesDir;
     string metadataPath;
 

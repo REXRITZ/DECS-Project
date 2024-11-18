@@ -1,5 +1,6 @@
 #include "server_session.h"
 
+namespace fs = std::filesystem;
 
 ServerSession::ServerSession() {
     sessionLock = PTHREAD_MUTEX_INITIALIZER;
@@ -21,20 +22,35 @@ int ServerSession:: getsockfd() {
 
 int ServerSession::loadFileMetaData() {
 
-    ifstream file(FILES_METADATA_PATH);
-    if(!file.is_open()) {
-        cout<<"file open error"<<endl;
+    // ifstream file(FILES_METADATA_PATH);
+    // if(!file.is_open()) {
+    //     cout<<"file open error"<<endl;
+    //     return -1;
+    // }
+    // string line;
+    // FileMetaData metadata;
+    // while(getline(file, line)) {
+    //     stringstream ss(line);
+    //     string perm;
+    //     ss  >> metadata.filename >> metadata.path >> metadata.isModified 
+    //         >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
+    //         >> metadata.currentReaders;
+    //     filesMap[metadata.filename] = metadata;
+    // }
+
+    try {
+        for (const auto &entry : fs::directory_iterator(FILE_DIR_PATH)) {
+            // Print the relative path and filename
+            std::cout << "File: " << entry.path().filename() 
+                      << " | Relative Path: " << entry.path() << std::endl;
+            FileMetaData metadata;
+            metadata.filename = entry.path().filename();
+            metadata.path = entry.path();
+            filesMap[metadata.filename] = metadata;
+        }
+    } catch (const std::filesystem::filesystem_error &e) {
+        std::cerr << "Error: " << e.what() << std::endl;
         return -1;
-    }
-    string line;
-    FileMetaData metadata;
-    while(getline(file, line)) {
-        stringstream ss(line);
-        string perm;
-        ss  >> metadata.filename >> metadata.path >> metadata.isModified 
-            >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
-            >> metadata.currentReaders;
-        filesMap[metadata.filename] = metadata;
     }
     return 0;
 }
@@ -95,7 +111,7 @@ const char* ServerSession::authenticateUser(User user, string clientid) {
         return "Invalid password!";
     }
     activeUsers[user.username] = user;
-    clientMap[clientid] = user;
+    // clientMap[clientid] = user;
     pthread_mutex_unlock(&sessionLock);
     return "OK";
 }
@@ -107,16 +123,26 @@ void ServerSession:: checkout(string filename, int connFd, string username) {
         pthread_mutex_unlock(&sessionLock);
         return;
     }
-    write(connFd, "OK\n", 3);
+    
     FileMetaData fileMetaData = filesMap[filename];
-    fileMetaData.currentReaders++;
+    // check if user has already checked out file
+    if(fileMetaData.hasWriteLock) {
+        write(connFd, "Write lock already exists on the file!", 38);
+        pthread_mutex_unlock(&sessionLock);
+        return;
+    }
+    else
+        write(connFd, "OK\n", 3);
+    User user = activeUsers[username];
+    if(!user.checkedoutFiles.count(filename))
+        fileMetaData.currentReaders++;
     string serializedData = fileMetaData.toString() + '\n';
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
 
     int fd = open(fileMetaData.path.c_str(), O_RDONLY);
-    const char* data = serializedData.c_str();
-    write(connFd, data, strlen(data)+1);
+    // const char* data = serializedData.c_str();
+    // write(connFd, data, strlen(data)+1);
     char buff[BUF_SIZE] = {0};
     
     while(1) {
@@ -139,14 +165,18 @@ void ServerSession:: commit(string filename, int connFd, string username) {
         return;
     }
     FileMetaData fileMetaData = filesMap[filename];
-    if(fileMetaData.hasWriteLock) {
-        write(connFd, "Write lock already exists on the file!", 38);
+    if(fileMetaData.hasWriteLock || fileMetaData.currentReaders > 0) {
+        if(fileMetaData.currentReaders > 0)
+            write(connFd, "Multiple readers are currently reading. Wait for them to finish!", 64);
+        else
+            write(connFd, "Write lock already exists on the file!", 38);
         pthread_mutex_unlock(&sessionLock);
         return;
     }
     write(connFd, "OK", 2);
 
     fileMetaData.hasWriteLock = true;
+    fileMetaData.whoHasWriteLock = username;
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
 
@@ -200,6 +230,7 @@ void ServerSession:: commit(string filename, int connFd, string username) {
 
     pthread_mutex_lock(&sessionLock);
     fileMetaData.hasWriteLock = false;
+    fileMetaData.whoHasWriteLock = "";
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
 }
@@ -213,16 +244,16 @@ const char* ServerSession::createFile(string filename, string clientid) {
     FileMetaData fileMetaData(filename);
     fileMetaData.path = FILE_DIR_PATH + filename;
     fileMetaData.lastModified = time(nullptr); // unix epoch timestamp
-    fileMetaData.owner = clientMap[clientid].username;
+    // fileMetaData.owner = clientMap[clientid].username;
     // write to persist file meta data info
     ofstream file1(fileMetaData.path);
     file1.close();
     ofstream file;
-    file.open(FILES_METADATA_PATH, ios_base::app);
-    file << fileMetaData.filename << " " << fileMetaData.path << " " << fileMetaData.isModified 
-            << " " << fileMetaData.hasWriteLock << " " << fileMetaData.owner << " " << fileMetaData.lastModified 
-            << " " << fileMetaData.currentReaders << endl;
-    file.close();
+    // file.open(FILES_METADATA_PATH, ios_base::app);
+    // file << fileMetaData.filename << " " << fileMetaData.path << " " << fileMetaData.isModified 
+    //         << " " << fileMetaData.hasWriteLock << " " << fileMetaData.owner << " " << fileMetaData.lastModified 
+    //         << " " << fileMetaData.currentReaders << endl;
+    // file.close();
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
     return "OK";
@@ -254,7 +285,17 @@ void ServerSession::printFileMetaData() {
 void ServerSession::quit(int connFd, string clientid) {
     pthread_mutex_lock(&sessionLock);
     cout<<"Inside quit" << endl;
+    //TODO remove clientmap and use username passed as argument later
     User user = clientMap[clientid];
+    for(string filename : user.checkedoutFiles) {
+        FileMetaData metadata = filesMap[filename];
+        metadata.currentReaders--;
+        if(metadata.whoHasWriteLock == user.username) {
+            metadata.hasWriteLock = false;
+            metadata.whoHasWriteLock = "";
+        }
+        filesMap[filename] = metadata;
+    }
     clientMap.erase(clientid);
     activeUsers.erase(user.username);
     pthread_mutex_unlock(&sessionLock);

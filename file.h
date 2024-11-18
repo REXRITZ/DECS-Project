@@ -1,5 +1,6 @@
 #include<string>
 #include<unordered_map>
+#include<unordered_set>
 #include<ctime>
 #include<sstream>
 #include<pthread.h>
@@ -14,6 +15,7 @@ struct FileMetaData{
     bool isModified = false;
     bool hasWriteLock = false;
     string owner;   // username of file owner
+    string whoHasWriteLock; // who has write lock ?
     time_t lastModified;
     int currentReaders = 0;
     pthread_mutex_t fileMutex;

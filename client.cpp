@@ -97,24 +97,24 @@ public:
             perror("Connection Failed\n");
             return -1;
         }
-        if(user.username.length() != 0)
+        if(user.loggedIn)
             return 0;
-        while(1) {
-            login();
-            char resp[BUF_SIZE] = {0};
-            read(sockfd, resp, BUF_SIZE);
-            if(strcmp(resp,"OK") == 0) {
-                user.metadataPath = "./" + user.username + "/filemetadata.txt";
-                user.filesDir = "./" + user.username + "/files";
-                cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
-                loadFileMetaData();
-                cout<<"Connected to server successfully."<<endl;
-                close(sockfd);
-                break;
-            }
-            cout<<resp<<endl;
+        login();
+        char resp[BUF_SIZE] = {0};
+        read(sockfd, resp, BUF_SIZE);
+        cout<<"login response: " << resp << endl;
+        if(strcmp(resp,"OK") == 0) {
+            user.metadataPath = "./" + user.username + "/filemetadata.txt";
+            user.filesDir = "./" + user.username + "/files";
+            user.loggedIn = true;
+            cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
+            loadFileMetaData();
+            cout<<"Connected to server successfully."<<endl;
+            close(sockfd);
+            return 0;
         }
-        return 0;
+        cout<<resp<<endl;
+        return -1;
     }
 
     void login() {
@@ -126,7 +126,8 @@ public:
         cin>>user.password;
         char data[BUF_SIZE] = {0};
         snprintf(data, BUF_SIZE, "login %s %s", user.username.c_str(), user.password.c_str());
-        send(sockfd, data, strlen(data), 0);
+        cout<<"sending request:" << data << endl;
+        write(sockfd, data, strlen(data));
     }
 
     int commit(string fileName) {
@@ -303,6 +304,7 @@ public:
                     continue;
                 } else if (cmds[0].compare(QUIT) == 0) {
                     // TODO: Inform server.
+                    startServer();
                     quit();
                     break;
                 } else if (cmds[0].compare(CREATE) == 0) {
@@ -315,7 +317,9 @@ public:
                         cout << "create: Enter a valid file name ending with '.txt'." << endl;
                         continue;
                     }
+                    startServer();
                     createFile(cmds[1]);
+                    close(sockfd);
                 } else if (cmds[0].compare(LISTALL) == 0) {
                     startServer();
                     listAll();
@@ -343,7 +347,9 @@ public:
                         cout << "commit: Enter a valid file name ending with '.txt'." << endl;
                         continue;
                     }
+                    startServer();
                     commit(cmds[1]);
+                    close(sockfd);
                 } else {
                     cout << "Enter a valid command!" << endl;
                 }
@@ -387,8 +393,8 @@ int main(int argc, char **argv) {
 
     client = new Client(port, ip);
 
-    if (client->startServer() < 0) {
-        return 1;
+    while (client->startServer() < 0) {
+        // return 1;
     }
 
     client->startClientLoop();

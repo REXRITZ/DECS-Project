@@ -8,8 +8,11 @@ struct User{
     unordered_set<string> checkedoutFiles;
     string filesDir;
     string metadataPath;
-
-    User() {}
+    bool loggedIn;
+    User() {
+        loggedIn = false;
+        checkedoutFiles.clear();
+    }
 
     User(string username, string pass) {
         this->username = username;

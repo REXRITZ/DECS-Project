@@ -22,22 +22,6 @@ int ServerSession:: getsockfd() {
 
 int ServerSession::loadFileMetaData() {
 
-    // ifstream file(FILES_METADATA_PATH);
-    // if(!file.is_open()) {
-    //     cout<<"file open error"<<endl;
-    //     return -1;
-    // }
-    // string line;
-    // FileMetaData metadata;
-    // while(getline(file, line)) {
-    //     stringstream ss(line);
-    //     string perm;
-    //     ss  >> metadata.filename >> metadata.path >> metadata.isModified 
-    //         >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
-    //         >> metadata.currentReaders;
-    //     filesMap[metadata.filename] = metadata;
-    // }
-
     try {
         for (const auto &entry : fs::directory_iterator(FILE_DIR_PATH)) {
             // Print the relative path and filename
@@ -111,7 +95,6 @@ const char* ServerSession::authenticateUser(User user, string clientid) {
         return "Invalid password!";
     }
     activeUsers[user.username] = user;
-    // clientMap[clientid] = user;
     pthread_mutex_unlock(&sessionLock);
     return "OK";
 }
@@ -135,8 +118,11 @@ void ServerSession:: checkout(string filename, int connFd, string username) {
         write(connFd, "OK\n", 3);
     
     User user = activeUsers[username];
-    if(!user.checkedoutFiles.count(filename))
+    if(!user.checkedoutFiles.count(filename)) {
         fileMetaData.currentReaders++;
+        user.checkedoutFiles.insert(filename);
+        activeUsers[username] = user;
+    }
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
 
@@ -274,7 +260,6 @@ void ServerSession::printFileMetaData() {
 
 void ServerSession::quit(int connFd, string username) {
     pthread_mutex_lock(&sessionLock);
-    cout<<"Inside quit" << endl;
     User user = activeUsers[username];
     for(string filename : user.checkedoutFiles) {
         FileMetaData metadata = filesMap[filename];

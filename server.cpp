@@ -45,7 +45,6 @@ int main(int argc, char** argv) {
     if (session->loadFileMetaData() < 0) {
         return 1;
     }
-    session->printFileMetaData();
 
     vector<pthread_t>workerThreads(threadPoolSize);
     for(int i = 0; i < threadPoolSize; ++i) {

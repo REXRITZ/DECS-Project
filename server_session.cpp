@@ -23,9 +23,7 @@ int ServerSession::loadFileMetaData() {
 
     try {
         for (const auto &entry : fs::directory_iterator(FILE_DIR_PATH)) {
-            // Print the relative path and filename
-            std::cout << "File: " << entry.path().filename() 
-                      << " | Relative Path: " << entry.path() << std::endl;
+            
             FileMetaData metadata;
             metadata.filename = entry.path().filename();
             metadata.path = entry.path();
@@ -216,10 +214,13 @@ void ServerSession::deleteFile(string filename, int connFd, string username) {
     }
 
     FileMetaData fileMetaData = filesMap[filename];
-    if(remove(fileMetaData.path.c_str()) == 0)
+    if(remove(fileMetaData.path.c_str()) == 0) {
         write(connFd, "OK", 2);
+        filesMap.erase(filename);
+    }
     else
         write(connFd, "Err: Unable to delete file", 26);
+    
     pthread_mutex_unlock(&sessionLock);
 }
 

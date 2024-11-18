@@ -209,6 +209,22 @@ void ServerSession::addFile(string filename, int connFd, string username) {
     commit(filename, connFd, username);
 }
 
+void ServerSession::deleteFile(string filename, int connFd, string username) {
+    pthread_mutex_lock(&sessionLock);
+    if(filesMap.find(filename) == filesMap.end()) {
+        write(connFd, "Given filename does not exists!", 29);
+        pthread_mutex_unlock(&sessionLock);
+        return;
+    }
+
+    FileMetaData fileMetaData = filesMap[filename];
+    if(remove(fileMetaData.path.c_str()) == 0)
+        write(connFd, "OK", 2);
+    else
+        write(connFd, "Err: Unable to delete file", 26);
+    pthread_mutex_unlock(&sessionLock);
+}
+
 string ServerSession:: listall() {
     unordered_map<string, FileMetaData>:: iterator it;
     string resp = "";

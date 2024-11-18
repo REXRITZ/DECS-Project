@@ -137,6 +137,12 @@ void* processClient(void* arg) {
                 continue;
             }
             session->commit(command[1], connFd, command[2]);
+        } else if(command[0] == "delete") {
+            if(command.size() != 3) {
+                write(connFd, "Usage: delete <filename.txt>", 28);
+                continue;
+            }
+            session->deleteFile(command[1], connFd, command[2]);
         } else {
             cout << "Enter a valid command!" << endl;
         }

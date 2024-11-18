@@ -34,6 +34,7 @@ class ServerSession {
         const char* authenticateUser(User, string);
         void checkout(string, int, string);
         void commit(string, int, string);
+        void deleteFile(string, int, string);
         void addFile(string, int, string);
         void quit(int, string);
         string listall();

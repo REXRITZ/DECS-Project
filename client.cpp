@@ -71,7 +71,7 @@ public:
         while(getline(file, line)) {
             stringstream ss(line);
             string perm;
-            ss  >> metadata.filename >> metadata.path >> metadata.isModified 
+            ss  >> metadata.filename >> metadata.path
                 >> metadata.hasWriteLock >> metadata.owner >> metadata.lastModified 
                 >> metadata.currentReaders;
             filesMap[metadata.filename] = metadata;
@@ -218,7 +218,7 @@ public:
         string fileMetaDataPath = "./" + user.username + "/filemetadata.txt";
         file.open(fileMetaDataPath);
         for (auto fileMD : filesMap) {
-            file << fileMD.second.filename << " " << fileMD.second.path << " " << fileMD.second.isModified 
+            file << fileMD.second.filename << " " << fileMD.second.path << " "  
                  << " " << fileMD.second.hasWriteLock << " " << fileMD.second.owner << " " << fileMD.second.lastModified 
                  << " " << fileMD.second.currentReaders << endl;
         }

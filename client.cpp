@@ -15,7 +15,7 @@ using namespace std;
 #define LISTALL "listall"
 #define CHECKOUT "checkout"
 #define COMMIT "commit"
-#define CREATE "create"
+#define ADD "add"
 #define DELETE "delete"
 
 typedef struct {
@@ -130,9 +130,16 @@ public:
         write(sockfd, data, strlen(data));
     }
 
-    int commit(string fileName) {
+    int commit(string fileName, string filePath, bool add) {
         // commit feature
-        string command = COMMIT;
+        string command;
+
+        if (add) {
+            command = ADD;
+        } else {
+            command = COMMIT;
+        }
+
         command += " " + fileName + " " + user.username;
 
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
@@ -152,7 +159,7 @@ public:
         }
                 
         char buff[BUF_SIZE] = {0};
-        int fd = open((user.filesDir + "/" + fileName).c_str(), O_RDONLY);
+        int fd = open(filePath.c_str(), O_RDONLY);
 
         if (fd < 0) {
             cerr << "Couldn't open the file " << fileName << endl;
@@ -185,27 +192,6 @@ public:
             return -1;
         }
         // delete file from server and locally also
-        return 0;
-    }
-
-    int createFile(string fileName) {
-        // create new file to server
-        string command = CREATE;
-        command += " " + fileName + " " + user.username;
-        if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
-            cout << "createFile: write failed" << endl;
-            exit(EXIT_FAILURE);
-        }
-
-        char resp[BUF_SIZE] = {0};
-        if (read(sockfd, resp, BUF_SIZE) < 0) {
-            cout << "createFile: read failed" << endl;
-            exit(EXIT_FAILURE);
-        }
-        if(strcmp(resp,"OK") == 0)
-            cout << fileName << " created successfully." << endl;
-        else
-            cout<<resp<<endl;
         return 0;
     }
 
@@ -290,6 +276,20 @@ public:
         return (fileName.length() < 5 || fileName.substr(fileName.length() - 4).compare(".txt") != 0);
     }
 
+    string getFileNameFromPath(string filePath) {
+        string fileName = "";
+        for (int i = filePath.size() - 1; i >= 0; --i) {
+            if (filePath[i] == '/') {
+                break;
+            }
+
+            fileName += filePath[i];
+        }
+
+        reverse(fileName.begin(), fileName.end());
+        return fileName;
+    }
+
     void startClientLoop() {
         string command;
         cin.ignore();
@@ -309,19 +309,6 @@ public:
                     startServer();
                     quit();
                     break;
-                } else if (cmds[0].compare(CREATE) == 0) {
-                    if (cmds.size() < 2) {
-                        cout << "Usage: create <file-name.txt>" << endl;
-                        continue;
-                    }
-
-                    if (fileNameIsNotValid(cmds[1])) {
-                        cout << "create: Enter a valid file name ending with '.txt'." << endl;
-                        continue;
-                    }
-                    startServer();
-                    createFile(cmds[1]);
-                    close(sockfd);
                 } else if (cmds[0].compare(LISTALL) == 0) {
                     startServer();
                     listAll();
@@ -350,7 +337,20 @@ public:
                         continue;
                     }
                     startServer();
-                    commit(cmds[1]);
+                    commit(cmds[1], user.filesDir + "/" + cmds[1], false);
+                    close(sockfd);
+                } else if (cmds[0].compare(ADD) == 0) {
+                    if (cmds.size() < 2) {
+                        cout << "Usage: add <file-path.txt>" << endl;
+                        continue;
+                    }
+                    
+                    // if (fileNameIsNotValid(cmds[1])) {
+                    //     cout << "add: Enter a valid file path ending with '.txt'." << endl;
+                    //     continue;
+                    // }
+                    startServer();
+                    commit(getFileNameFromPath(cmds[1]), cmds[1], true);
                     close(sockfd);
                 } else {
                     cout << "Enter a valid command!" << endl;

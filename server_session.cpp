@@ -134,9 +134,7 @@ void ServerSession:: checkout(string filename, int connFd, string username) {
             break;
         buff[bytesread] = '\0';
         write(connFd, buff, bytesread);
-        cout<< "wrote:" << buff << endl;
     }
-    cout << "done\n";
 }
 
 void ServerSession:: commit(string filename, int connFd, string username) {
@@ -194,21 +192,21 @@ void ServerSession:: commit(string filename, int connFd, string username) {
     pthread_mutex_unlock(&sessionLock);
 }
 
-const char* ServerSession::createFile(string filename, string username) {
+void ServerSession::addFile(string filename, int connFd, string username) {
     pthread_mutex_lock(&sessionLock);
     if(filesMap.find(filename) != filesMap.end()) {
+        write(connFd, "File with given name already exists!", 36);
         pthread_mutex_unlock(&sessionLock);
-        return "File with given name already exists!";
+        return;
     }
     FileMetaData fileMetaData(filename);
     fileMetaData.path = FILE_DIR_PATH + filename;
     fileMetaData.lastModified = time(nullptr); // unix epoch timestamp
     ofstream file1(fileMetaData.path);
     file1.close();
-    ofstream file;
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
-    return "OK";
+    commit(filename, connFd, username);
 }
 
 string ServerSession:: listall() {

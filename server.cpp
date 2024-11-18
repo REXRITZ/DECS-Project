@@ -113,13 +113,12 @@ void* processClient(void* arg) {
             User user(command[1], command[2]);
             const char* resp = session->authenticateUser(user, clientid);
             write(connFd, resp, strlen(resp));
-        } else if(command[0] == "create") {
+        } else if(command[0] == "add") {
             if(command.size() != 3) {
-                write(connFd, "Usage: create <filename.txt>", 28);
+                write(connFd, "Usage: add <filename.txt>", 25);
                 continue;
             }
-            const char* resp = session->createFile(command[1], command[2]);
-            write(connFd, resp, strlen(resp));
+            session->addFile(command[1], connFd, command[2]);
         } else if(command[0] == "listall") {
             string resp = session->listall();
             write(connFd, resp.c_str(), resp.length());
@@ -127,8 +126,16 @@ void* processClient(void* arg) {
             session->quit(connFd, command[1]);
             continue;
         } else if(command[0] == "checkout") {
+            if(command.size() != 3) {
+                write(connFd, "Usage: checkout <filename.txt>", 30);
+                continue;
+            }
             session->checkout(command[1], connFd, command[2]);
         } else if(command[0] == "commit") {
+            if(command.size() != 3) {
+                write(connFd, "Usage: commit <filename.txt>", 28);
+                continue;
+            }
             session->commit(command[1], connFd, command[2]);
         } else {
             cout << "Enter a valid command!" << endl;

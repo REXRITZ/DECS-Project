@@ -12,12 +12,11 @@ struct FileMetaData{
     // int id;
     string filename; // filename can also be id??
     string path;
-    bool isModified = false;
-    bool hasWriteLock = false;
+    bool hasWriteLock;
     string owner;   // username of file owner
     string whoHasWriteLock; // who has write lock ?
     time_t lastModified;
-    int currentReaders = 0;
+    int currentReaders;
     pthread_mutex_t fileMutex;
     pthread_cond_t fileWait; 
     // add methods here
@@ -25,6 +24,9 @@ struct FileMetaData{
     FileMetaData() {
         fileMutex = PTHREAD_MUTEX_INITIALIZER;
         fileWait = PTHREAD_COND_INITIALIZER;
+        whoHasWriteLock = "";
+        hasWriteLock = false;
+        currentReaders = 0;
     }
 
     ~FileMetaData() {
@@ -38,7 +40,7 @@ struct FileMetaData{
 
     string toString() {
         stringstream oss;
-        oss << filename << " " << path << " " << isModified 
+        oss << filename << " " << path << " "
             << " " << hasWriteLock << " " << owner 
             << " " << lastModified << " " << currentReaders;
         return oss.str();
@@ -46,7 +48,7 @@ struct FileMetaData{
 
     void fromString(string str) {
         stringstream iss(str);
-        iss  >> filename >> path >> isModified 
+        iss  >> filename >> path
                 >> hasWriteLock >> owner >> lastModified 
                 >> currentReaders;
     }

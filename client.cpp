@@ -140,6 +140,13 @@ public:
             command = COMMIT;
         }
 
+        int fd = open(filePath.c_str(), O_RDONLY);
+
+        if (fd < 0) {
+            cerr << "Couldn't open the file " << fileName << endl;
+            return -1;
+        }
+
         command += " " + fileName + " " + user.username;
 
         if (write(sockfd, command.c_str(), command.length() + 1) < 0) {
@@ -159,12 +166,7 @@ public:
         }
                 
         char buff[BUF_SIZE] = {0};
-        int fd = open(filePath.c_str(), O_RDONLY);
-
-        if (fd < 0) {
-            cerr << "Couldn't open the file " << fileName << endl;
-            return -1;
-        }
+        
 
         while(1) {
             int bytesread = read(fd, buff, BUF_SIZE-1);
@@ -175,6 +177,10 @@ public:
                 cerr<<"commit: write failed" << endl;
                 break;
             }
+        }
+
+        if (add) {
+            cout << "File added in the server. Please checkout the file using its filename." << endl;
         }
 
         return 0;

@@ -107,10 +107,10 @@ void ServerSession:: checkout(string filename, int connFd, string username) {
         pthread_mutex_unlock(&sessionLock);
         return;
     }
-    write(connFd, "OK", 3);
+    write(connFd, "OK\n", 3);
     FileMetaData fileMetaData = filesMap[filename];
     fileMetaData.currentReaders++;
-    string serializedData = fileMetaData.toString();
+    string serializedData = fileMetaData.toString() + '\n';
     filesMap[filename] = fileMetaData;
     pthread_mutex_unlock(&sessionLock);
 

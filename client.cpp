@@ -243,77 +243,52 @@ public:
             exit(EXIT_FAILURE);
         }
 
+        string respStr = "";
         char resp[BUF_SIZE] = {0};
-        if (read(sockfd, resp, BUF_SIZE) < 0) {
-            cout << "checkout: read failed" << endl;
-            exit(EXIT_FAILURE);
+        while (true) {
+            int readSz = 0;
+            if ((readSz = read(sockfd, resp, BUF_SIZE-1)) < 0) {
+                perror("checkout: read failed");
+                break;
+            }
+            // resp[readSz] = '\0';
+            if (readSz == 0) {
+                break;
+            }
+
+            for (int i = 0; i < readSz; ++i) {
+                respStr += resp[i];
+            }
+
+            // cout << "readSz: " << readSz << ", resp: " << resp << endl;
         }
-        if(strcmp(resp,"OK") == 0) {
+
+        // cout << "respStr: " << respStr << endl;
+        stringstream respSS(respStr);
+
+        string buf;
+        getline(respSS, buf);
+        if (buf == "OK") {
             FileMetaData fileMetaData;
-            char fileMetaDataString[BUF_SIZE] = {0};
+            string fileMetaDataString;
+            getline(respSS, fileMetaDataString);
             cout << fileName << " is present. Starting download." << endl;
+            // cout << "fileMetaDataString: " << fileMetaDataString << '\n';
             // Read file metadata
-            cout << "before read filemetadata" << endl;
-            read(sockfd, fileMetaDataString, BUF_SIZE-1);
-            cout << "after read filemetadata" << endl;
             fileMetaData.fromString(fileMetaDataString);
             fileMetaData.path = user.filesDir + "/" + fileName;
             filesMap[fileName] = fileMetaData;
 
             // Update filemetadata.txt
-            cout << "before write filemetadata" << endl;
             writeFileMetaData();
-            cout << "after write filemetadata" << endl;
-
-            // Read the file.
             ofstream file;
+            respSS.ignore();
             file.open(user.filesDir + "/" + fileName);
-            char buff[BUF_SIZE] = {0};
-            bool oAtEnd = false;
-            while (true) {
-                int readSz = 0;
-                if ((readSz = read(sockfd, buff, BUF_SIZE-1)) < 0) {
-                    perror("checkout: read failed");
-                    break;
-                }
-
-                if (readSz == 0) {
-                    cout <<"readSz:" << readSz <<endl;
-                    break;
-                }
-                buff[readSz] = '\0';
-                cout << "readSz: " << readSz << ", buff: " << buff << endl;
-                // if (readSz >= 2 && buff[readSz - 2] == 'O' && buff[readSz - 1] == 'K') {
-                //     buff[readSz - 2] = buff[readSz - 1] = '\0';
-                //     if (oAtEnd) {
-                //         file << "O";
-                //     }
-                //     file << buff;
-                //     break;
-                // }
-
-                // if (readSz == BUF_SIZE - 1 && buff[readSz - 1] == 'O') {
-                //     buff[readSz - 1] = '\0';
-                //     file << buff;
-                //     oAtEnd = true;
-                //     continue;
-                // }
-
-                // if (oAtEnd) {
-                //     if (readSz == 1 && buff[readSz - 1] == 'K') {
-                //         break;
-                //     } else {
-                //         oAtEnd = false;
-                //         file << "O";
-                //     }
-                // }
-
-                file << buff;
-            }
-            file.close();
-        }
-        else
+            file << respSS.rdbuf();
+        } else {
             cout << resp << endl;
+        }
+
         return 0;
     }
 

@@ -87,33 +87,32 @@ public:
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if(sockfd < 0) {
             perror("socket creation failed\n");
-            return -1;
+            return -2;
         }
         memset(&serverAddr, 0, sizeof(sockaddr_in));
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_port = htons(port);
         if(inet_pton(AF_INET, ip, &serverAddr.sin_addr) <= 0) {
             cout<<"Invalid address/ Address not supported"<<endl;
-            return -1;
+            return -2;
         }
 
         if(connect(sockfd, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) < 0) {
             perror("Connection Failed\n");
-            return -1;
+            return -2;
         }
         if(user.loggedIn)
             return 0;
         login();
         char resp[BUF_SIZE] = {0};
         read(sockfd, resp, BUF_SIZE);
-        cout<<"login response: " << resp << endl;
         if(strcmp(resp,"OK") == 0) {
             user.metadataPath = "./" + user.username + "/filemetadata.txt";
             user.filesDir = USERS_DIR;
             user.filesDir += "/" + user.username + "/files";
             user.loggedIn = true;
-            cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
-            loadFileMetaData();
+            // cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
+            // loadFileMetaData();
             cout<<"Connected to server successfully."<<endl;
             close(sockfd);
             return 0;
@@ -131,7 +130,6 @@ public:
         cin>>user.password;
         char data[BUF_SIZE] = {0};
         snprintf(data, BUF_SIZE, "login %s %s", user.username.c_str(), user.password.c_str());
-        cout<<"sending request:" << data << endl;
         write(sockfd, data, strlen(data));
     }
 
@@ -144,7 +142,6 @@ public:
         } else {
             command = COMMIT;
         }
-
         int fd = open(filePath.c_str(), O_RDONLY);
 
         if (fd < 0) {
@@ -426,8 +423,12 @@ int main(int argc, char **argv) {
 
     client = new Client(port, ip);
 
-    while (client->startServer() < 0) {
-        // return 1;
+    int status;
+    while ((status=client->startServer()) < 0) {
+        if(status == -2) {
+            cerr << "connection failed with server" << endl;
+            return 1;
+        }
     }
 
     client->startClientLoop();

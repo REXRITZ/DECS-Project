@@ -9,6 +9,7 @@ using namespace std;
 #define IP_SIZE 16
 #define FILES_METADATA_PATH "./filemetadata.txt"
 #define BUF_SIZE 1024
+#define USERS_DIR "./users"
 
 // Client-side commands.
 #define QUIT "quit"
@@ -55,7 +56,10 @@ public:
     }
 
     void checkDirs() {
-        checkDir("./" + user.username);
+        checkDir(USERS_DIR);
+        string path = USERS_DIR;
+        path += "/" + user.username;
+        checkDir(path);
         checkDir(user.filesDir);
     }
 
@@ -105,7 +109,8 @@ public:
         cout<<"login response: " << resp << endl;
         if(strcmp(resp,"OK") == 0) {
             user.metadataPath = "./" + user.username + "/filemetadata.txt";
-            user.filesDir = "./" + user.username + "/files";
+            user.filesDir = USERS_DIR;
+            user.filesDir += "/" + user.username + "/files";
             user.loggedIn = true;
             cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
             loadFileMetaData();

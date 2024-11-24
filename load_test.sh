@@ -8,12 +8,15 @@ fi
 # # Configuration
 SERVER_IP="127.0.0.1"  # Replace with actual server IP
 PORT=$1  # Replace with actual port number
-MAX_CLIENTS=5
+MAX_CLIENTS=10
 MAX_COMMANDS=10
 DIR="results"
 results_file="$DIR/results.txt"
 temp_file="$DIR/durations.txt"
 
+if [ ! -d "results" ]; then
+    mkdir results
+fi
 
 # Results file
 > "$results_file"
@@ -33,7 +36,7 @@ temp_file="$DIR/durations.txt"
 #         echo "$username" >> "$file"
 #         echo "$password" >> "$file"
 #         for ((j=1; j<=MAX_COMMANDS; j++)); do
-#             echo "checkout abc.txt" >> "$file"
+#             echo "checkout file.txt" >> "$file"
 #         done
 #         echo "quit" >> "$file"
 
@@ -50,6 +53,7 @@ for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
         
         # Simulate client interactions
         ./client "$SERVER_IP" "$PORT" < "input/inp_$i.txt"
+        echo "hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
         # sleep 1
 
         ) &
@@ -61,10 +65,10 @@ for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
     total_time=$(echo "$end_time - $start_time" | bc)
     # echo "$total_time" >> "$temp_file"
     total_requests=$(echo "$clients*($MAX_COMMANDS+1)" | bc)
-    throughput=$(echo "$total_requests/$total_time" | bc)
-    echo "$clients $total_time $throughput" >> "$results_file"
+    throughput=$(echo "$total_requests/$total_time" | bc -l)
+    echo "$clients $total_requests $throughput $total_time" >> "$results_file"
 
-    sleep 5
+    # sleep 5
     # total_time=0
     # while read -r line
     # do

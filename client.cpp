@@ -18,6 +18,7 @@ using namespace std;
 #define COMMIT "commit"
 #define ADD "add"
 #define DELETE "delete"
+#define HELP "help"
 
 typedef struct {
     string username;
@@ -380,8 +381,10 @@ public:
                     startServer();
                     deleteFile(cmds[1]);
                     close(sockfd);
+                } else if (cmds[0].compare(HELP) == 0) {
+                    help();
                 } else {
-                    cout << "Enter a valid command!" << endl;
+                    cout << "Enter a valid command! Enter 'help' to get information about the available commands." << endl;
                 }
             }
         }
@@ -395,6 +398,15 @@ public:
         close(sockfd);
     }
 
+    void help() {
+        cout << "Commands:" << endl
+        << "listall: List all files present on server with current readers/writers count." << endl
+        << "checkout <file-name>: Download file from server and store on client side." << endl
+        << "commit <file-name>: Update a file on server. (syncronized)" << endl
+        << "add <file-path>: Add a new file to the server." << endl
+        << "delete <file-name>: Delete a file on the server." << endl
+        << "quit: Quit the client application. Any logged-in user will be logged-out." << endl;
+    }
 };
 
 // global variable

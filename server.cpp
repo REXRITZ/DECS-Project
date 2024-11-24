@@ -23,13 +23,13 @@ int initThreadPool(vector<pthread_t>&, int, ServerSession*);
 
 int main(int argc, char** argv) {
 
-    if(argc != 2) {
-        cout<<"Usage: ./server <port_no>"<<endl;
+    if(argc != 3) {
+        cout<<"Usage: ./server <port_no> <thread_pool_size>"<<endl;
         return 1;
     }
 
     int port = atoi(argv[1]);
-    int threadPoolSize = 4;
+    int threadPoolSize = atoi(argv[2]);
 
     sockaddr_in serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));

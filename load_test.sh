@@ -23,26 +23,6 @@ fi
 # Temporary file to store durations
 > "$temp_file"
 
-
-# if [ ! -d "input" ]; then
-#     mkdir input
-# fi
-# for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
-#         file="input/inp_$clients.txt"
-#         > "$file"
-#         username="user_$clients"
-#         password="pass_$clients"
-#         echo "username: $username"
-#         echo "$username" >> "$file"
-#         echo "$password" >> "$file"
-#         for ((j=1; j<=MAX_COMMANDS; j++)); do
-#             echo "checkout file.txt" >> "$file"
-#         done
-#         echo "quit" >> "$file"
-
-# done
-# exit 1
-
 for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
     start_time=$(date +%s)
     # Run clients in parallel and capture durations
@@ -53,7 +33,6 @@ for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
         
         # Simulate client interactions
         ./client "$SERVER_IP" "$PORT" < "input/inp_$i.txt"
-        echo "hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii"
         # sleep 1
 
         ) &

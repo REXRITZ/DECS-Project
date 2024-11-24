@@ -10,3 +10,45 @@ Clients can read shared files simultaneously, but only one user can write at a t
 A write to a file should notify clients who have checked out the file about the update event.
 
 Changes to a file can be pushed to or pulled by the client — this is a design choice to explore tradeoffs. Further, is the entire file pushed, or just the delta is also a design choice.
+
+## Build Instructions
+
+- Server: `g++ server_session.cpp server.cpp -o server -lpthread`
+- Client: `g++ client.cpp -o client`
+
+## Usage Instructions
+
+### Server
+
+- Start server: `./server <port-number>`
+
+### Client
+
+- Start client: `./client <server-ip> <server-port>`
+
+#### Client-Side commands
+
+##### listall
+
+- List all files present on server with current readers/writers count.
+- Usage: `listall`
+
+##### checkout
+
+- Download file from server and store on client side.
+- Usage: `checkout <file-name>`
+
+##### commit
+
+- Update a file on server. (syncronized)
+- Usage: `commit <file-name>`
+
+##### add
+
+- Add a new file to the server.
+- Usage: `add <file-path>`
+
+##### delete
+
+- Delete a file on the server.
+- Usage: `delete <file-name>`

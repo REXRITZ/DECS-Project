@@ -260,6 +260,7 @@ void ServerSession::quit(int connFd, string username) {
         filesMap[filename] = metadata;
     }
     close(connFd);
+    activeUsers.erase(username);
     pthread_mutex_unlock(&sessionLock);
     
 }

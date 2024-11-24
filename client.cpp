@@ -112,7 +112,7 @@ public:
             user.filesDir += "/" + user.username + "/files";
             user.loggedIn = true;
             // cout << "metadataPath: " << user.metadataPath << " filesDir: " << user.filesDir << endl;
-            // loadFileMetaData();
+            checkDirs();
             cout<<"Connected to server successfully."<<endl;
             close(sockfd);
             return 0;

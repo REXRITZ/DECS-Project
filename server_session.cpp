@@ -259,7 +259,7 @@ void ServerSession::quit(int connFd, string username) {
         }
         filesMap[filename] = metadata;
     }
-    activeUsers.erase(user.username);
-    pthread_mutex_unlock(&sessionLock);
     close(connFd);
+    pthread_mutex_unlock(&sessionLock);
+    
 }

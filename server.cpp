@@ -4,6 +4,7 @@
 #include<arpa/inet.h>
 #include<string.h>
 #include<unistd.h>
+#include<errno.h>   
 #include "server_session.h"
 using namespace std;
 
@@ -63,6 +64,9 @@ int main(int argc, char** argv) {
         int connFd;
         connFd = accept(session->getsockfd(), (struct sockaddr*)&clientAddr, &clientLen);
         if(connFd < 0) {
+            if(errno == EMFILE) {
+                continue;
+            }
             perror("accept connection error\n");
             return 1;
         }
@@ -72,6 +76,8 @@ int main(int argc, char** argv) {
         
         pthread_mutex_lock(&queueLock);
         connQueue.push({connFd, clientid});
+        // count++;
+        // cout<<"Queue size: " << connQueue.size()  << " req:" << count << endl;
         pthread_cond_signal(&queueWait);
         pthread_mutex_unlock(&queueLock);
         
@@ -96,17 +102,19 @@ void* processClient(void* arg) {
         char buff[BUF_SIZE] = {0};
         if(read(connFd, buff, sizeof(buff)) < 0) {
             cerr << "commmand read: read failed";
+            close(connFd);
             break;
         }
+        
         if(strlen(buff) == 0) {
+            close(connFd);
             break;
         }
-        cout<<"Request: "<< buff <<endl;
-        vector<string>command;
-        char* token = strtok(buff, " ");
-        while(token) {
-            command.push_back(token);
-            token = strtok(NULL, " ");
+        stringstream cmdSS(buff);
+        vector<string> command;
+        string word;
+        while (cmdSS >> word) {
+            command.push_back(word);
         }
         if(command[0] == "login") {
             User user(command[1], command[2]);
@@ -115,6 +123,7 @@ void* processClient(void* arg) {
         } else if(command[0] == "add") {
             if(command.size() != 3) {
                 write(connFd, "Usage: add <filename.txt>", 25);
+                close(connFd);
                 continue;
             }
             session->addFile(command[1], connFd, command[2]);
@@ -122,23 +131,27 @@ void* processClient(void* arg) {
             string resp = session->listall();
             write(connFd, resp.c_str(), resp.length());
         } else if(command[0] == "quit") {
-            session->quit(connFd, command[1]);
+            if(command.size() == 2)
+                session->quit(connFd, command[1]);
             continue;
         } else if(command[0] == "checkout") {
             if(command.size() != 3) {
                 write(connFd, "Usage: checkout <filename.txt>", 30);
+                close(connFd);
                 continue;
             }
             session->checkout(command[1], connFd, command[2]);
         } else if(command[0] == "commit") {
             if(command.size() != 3) {
                 write(connFd, "Usage: commit <filename.txt>", 28);
+                close(connFd);
                 continue;
             }
             session->commit(command[1], connFd, command[2]);
         } else if(command[0] == "delete") {
             if(command.size() != 3) {
                 write(connFd, "Usage: delete <filename.txt>", 28);
+                close(connFd);
                 continue;
             }
             session->deleteFile(command[1], connFd, command[2]);

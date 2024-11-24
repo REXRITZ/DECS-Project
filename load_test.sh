@@ -8,21 +8,22 @@ fi
 # # Configuration
 SERVER_IP="127.0.0.1"  # Replace with actual server IP
 PORT=$1  # Replace with actual port number
-MAX_CLIENTS=10
+MAX_CLIENTS=5
 MAX_COMMANDS=10
+DIR="results"
+results_file="$DIR/results.txt"
+temp_file="$DIR/durations.txt"
 
 
-# # Results file
-results_file="results.txt"
+# Results file
 > "$results_file"
-
 # Temporary file to store durations
-temp_file="durations.txt"
 > "$temp_file"
 
-if [ ! -d "input" ]; then
-    mkdir input
-fi
+
+# if [ ! -d "input" ]; then
+#     mkdir input
+# fi
 # for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
 #         file="input/inp_$clients.txt"
 #         > "$file"
@@ -32,7 +33,7 @@ fi
 #         echo "$username" >> "$file"
 #         echo "$password" >> "$file"
 #         for ((j=1; j<=MAX_COMMANDS; j++)); do
-#             echo "listall" >> "$file"
+#             echo "checkout abc.txt" >> "$file"
 #         done
 #         echo "quit" >> "$file"
 
@@ -59,9 +60,11 @@ for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
     end_time=$(date +%s.%N)    
     total_time=$(echo "$end_time - $start_time" | bc)
     # echo "$total_time" >> "$temp_file"
-    echo "$clients $total_time" >> "$results_file"
+    total_requests=$(echo "$clients*($MAX_COMMANDS+1)" | bc)
+    throughput=$(echo "$total_requests/$total_time" | bc)
+    echo "$clients $total_time $throughput" >> "$results_file"
 
-
+    sleep 5
     # total_time=0
     # while read -r line
     # do
@@ -74,5 +77,6 @@ for ((clients=1; clients<=MAX_CLIENTS; clients++)); do
 
 done
 
-# python3 plot.py $results_file
+# echo "python3 ./$DIR/plot.py ./$results_file"
+python3 ./$DIR/plot.py ./$results_file
 echo "Benchmark complete. Results in $results_file"

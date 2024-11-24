@@ -54,3 +54,7 @@ Clients can read shared files simultaneously, but only one user can write at a t
 - Quit the client application. Any logged-in user will be logged-out.
 - Usage: `quit`
 
+##### help
+
+- Give information about all the available commands.
+- Usage: `help`

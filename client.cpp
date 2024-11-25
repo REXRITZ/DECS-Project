@@ -400,12 +400,13 @@ public:
 
     void help() {
         cout << "Commands:" << endl
-        << "listall: List all files present on server with current readers/writers count." << endl
+        << "help                : Get list of all commands" << endl
+        << "listall             : List all files present on server with current readers/writers count." << endl
         << "checkout <file-name>: Download file from server and store on client side." << endl
-        << "commit <file-name>: Update a file on server. (syncronized)" << endl
-        << "add <file-path>: Add a new file to the server." << endl
-        << "delete <file-name>: Delete a file on the server." << endl
-        << "quit: Quit the client application. Any logged-in user will be logged-out." << endl;
+        << "commit <file-name>  : Update a file on server. (syncronized)" << endl
+        << "add <file-path>     : Add a new file to the server." << endl
+        << "delete <file-name>  : Delete a file on the server." << endl
+        << "quit                : Quit the client application. Any logged-in user will be logged-out." << endl;
     }
 };
 
